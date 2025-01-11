@@ -30,15 +30,13 @@
               PublishPort = [ "8081:80" ];
             };
           };
-          # TODO: Currently not working
-          # Exception: unit "nginx-rootless.service" is inactive and there are no pending jobs
-          # nginx-rootless = {
-          #   uid = config.users.users.quadlet.uid;
-          #   containerConfig = {
-          #     Image = "docker-archive:${pkgs.dockerTools.examples.nginx}";
-          #     PublishPort = [ "8082:80" ];
-          #   };
-          # };
+          nginx-rootless = {
+            uid = config.users.users.quadlet.uid;
+            containerConfig = {
+              Image = "docker-archive:${pkgs.dockerTools.examples.nginx}";
+              PublishPort = [ "8082:80" ];
+            };
+          };
         };
       };
     };
@@ -70,9 +68,10 @@
 
       machine.wait_for_unit("${containers.nginx-image-stream.serviceName}.service")
       assert 'nginx' in machine.succeed("curl http://127.0.0.1:8081").lower()
+
+      machine.wait_for_unit("${containers.nginx-rootless.serviceName}.service", "${user.name}")
+      containers = json.loads(machine.succeed("sudo -u ${user.name} -- podman ps --format json"))
+      assert len(containers) == 1, f"Expected 1 user container, got: {len(containers)}"
+      assert 'nginx' in machine.succeed("curl http://127.0.0.1:8082").lower()
     '';
-  # machine.wait_for_unit("${containers.nginx-rootless.serviceName}.service", "${user.name}")
-  # containers = json.loads(machine.succeed("podman ps --format json", "${user.name}"))
-  # assert len(containers) == 1, f"Expected 1 user container, got: {len(containers)}"
-  # assert 'nginx' in machine.succeed("curl http://127.0.0.1:8082").lower()
 }

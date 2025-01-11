@@ -15,7 +15,6 @@ let
   lib' = inputs.self.lib {
     inherit lib systemdUtils;
   };
-  defaultTarget = "multi-user.target";
 
   mkSubmodule =
     path:
@@ -25,7 +24,7 @@ let
         ./common.nix
       ];
       _module.args = {
-        inherit lib' podman defaultTarget;
+        inherit lib' podman;
         inherit (pkgs) writeShellApplication;
       };
     };
@@ -41,13 +40,15 @@ let
 
   duplicateNames = lib.intersectLists (lib.attrNames cfg.containers) (lib.attrNames cfg.pods);
 
-  autoUpdateService = import ./update.nix {
-    inherit lib defaultTarget podman;
-    inherit (cfg.autoUpdate) startAt;
-  };
+  mkAutoUpdate =
+    autoStartTarget:
+    import ./update.nix {
+      inherit lib podman autoStartTarget;
+      inherit (cfg.autoUpdate) startAt;
+    };
 
   mkUnitOverride = obj: {
-    name = "${obj.serviceName}.service";
+    name = obj.serviceName;
     value = {
       overrideStrategy = "asDropin";
       text = lib'.mkUnitText {
@@ -151,11 +152,11 @@ in
 
     systemd.services.quadlet-auto-update = lib.mkIf (
       cfg.autoUpdate.enable && lib.length rootfulObjects > 0
-    ) autoUpdateService;
+    ) (mkAutoUpdate "multi-user.target");
     systemd.user.services.quadlet-auto-update =
       lib.mkIf (cfg.autoUpdate.enable && lib.length rootlessObjects > 0)
         (
-          lib.recursiveUpdate autoUpdateService {
+          lib.recursiveUpdate (mkAutoUpdate "default.target") {
             unitConfig.ConditionUser = lib.concatMapStringsSep "|" toString rootlessUsers;
           }
         );

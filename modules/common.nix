@@ -3,7 +3,6 @@
   name,
   config,
   lib',
-  defaultTarget,
   ...
 }:
 {
@@ -22,15 +21,9 @@
       example = 1000;
       default = null;
     };
-    autoStart = {
-      enable = lib.mkOption {
-        type = lib.types.bool;
-        default = true;
-      };
-      target = lib.mkOption {
-        type = lib.types.str;
-        default = defaultTarget;
-      };
+    autoStart = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
     };
 
     systemdConfig = lib.mkOption {
@@ -44,7 +37,9 @@
   };
   config = {
     installConfig = {
-      WantedBy = lib.mkIf config.autoStart.enable [ config.autoStart.target ];
+      WantedBy = lib.mkIf config.autoStart (
+        if config.uid == null then [ "multi-user.target" ] else [ "default.target" ]
+      );
     };
     serviceConfig = {
       Restart = "always";

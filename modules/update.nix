@@ -1,12 +1,12 @@
 {
   podman,
   lib,
-  defaultTarget,
   startAt,
+  autoStartTarget,
 }:
 {
   description = "Quadlet auto-update";
-  wantedBy = [ defaultTarget ];
+  wantedBy = [ autoStartTarget ];
   wants = [ "network-online.target" ];
   after = [ "network-online.target" ];
   inherit startAt;
