@@ -21,7 +21,8 @@ let
     types.submodule {
       imports = [
         path
-        ./common.nix
+        ../quadlet-modules/common.nix
+        ../quadlet-modules/uid.nix
       ];
       _module.args = {
         inherit lib' podman;
@@ -47,15 +48,32 @@ let
       inherit (cfg.autoUpdate) startAt;
     };
 
-  mkUnitOverride = obj: {
-    name = obj.serviceName;
-    value = {
+  mkUnitOverride =
+    obj:
+    lib.nameValuePair obj.serviceName {
       overrideStrategy = "asDropin";
       text = lib'.mkUnitText {
         Unit.X-QuadletNixHash = builtins.hashString "sha256" obj.text;
       };
     };
-  };
+
+  mkQuadletName =
+    obj:
+    if obj.uid == null then "containers/systemd/${obj.ref}" else "containers/systemd/users/${obj.ref}";
+
+  mkSystemdName =
+    obj:
+    if obj.uid == null then
+      "etc/systemd/system/${obj.serviceName}.service"
+    else
+      "etc/systemd/user/${obj.serviceName}.service";
+
+  mkSystemdPath =
+    obj:
+    if obj.uid == null then
+      "/run/systemd/generator/${obj.serviceName}.service"
+    else
+      "/run/user/${toString obj.uid}/systemd/generator/${obj.serviceName}.service";
 in
 {
   options = {
@@ -72,31 +90,31 @@ in
         };
       };
       containers = lib.mkOption {
-        type = types.attrsOf (mkSubmodule ./container.nix);
+        type = types.attrsOf (mkSubmodule ../quadlet-modules/container.nix);
         default = { };
       };
       networks = lib.mkOption {
-        type = types.attrsOf (mkSubmodule ./network.nix);
+        type = types.attrsOf (mkSubmodule ../quadlet-modules/network.nix);
         default = { };
       };
       pods = lib.mkOption {
-        type = types.attrsOf (mkSubmodule ./pod.nix);
+        type = types.attrsOf (mkSubmodule ../quadlet-modules/pod.nix);
         default = { };
       };
       kubes = lib.mkOption {
-        type = types.attrsOf (mkSubmodule ./kube.nix);
+        type = types.attrsOf (mkSubmodule ../quadlet-modules/kube.nix);
         default = { };
       };
       volumes = lib.mkOption {
-        type = types.attrsOf (mkSubmodule ./volume.nix);
+        type = types.attrsOf (mkSubmodule ../quadlet-modules/volume.nix);
         default = { };
       };
       builds = lib.mkOption {
-        type = types.attrsOf (mkSubmodule ./build.nix);
+        type = types.attrsOf (mkSubmodule ../quadlet-modules/build.nix);
         default = { };
       };
       images = lib.mkOption {
-        type = types.attrsOf (mkSubmodule ./image.nix);
+        type = types.attrsOf (mkSubmodule ../quadlet-modules/image.nix);
         default = { };
       };
     };
@@ -120,29 +138,20 @@ in
       }) (lib.attrValues cfg.containers));
     virtualisation.podman.enable = true;
     environment.etc = lib.listToAttrs (
-      map (obj: {
-        name =
-          if obj.uid == null then "containers/systemd/${obj.ref}" else "containers/systemd/users/${obj.ref}";
-        value = {
+      map (
+        obj:
+        lib.nameValuePair (mkQuadletName obj) {
           inherit (obj) text;
-        };
-      }) allObjects
+        }
+      ) allObjects
     );
     # The symlinks are not necessary for the services to be honored by systemd,
     # but necessary for NixOS activation process to pick them up for updates.
     systemd.packages = lib.singleton (
       pkgs.linkFarm "quadlet-nix" (
         map (obj: {
-          name =
-            if obj.uid == null then
-              "etc/systemd/system/${obj.serviceName}.service"
-            else
-              "etc/systemd/user/${obj.serviceName}.service";
-          path =
-            if obj.uid == null then
-              "/run/systemd/generator/${obj.serviceName}.service"
-            else
-              "/run/user/${toString obj.uid}/systemd/generator/${obj.serviceName}.service";
+          name = mkSystemdName obj;
+          path = mkSystemdPath obj;
         }) allObjects
       )
     );

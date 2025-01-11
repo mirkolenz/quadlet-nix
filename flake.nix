@@ -16,7 +16,7 @@
       ];
       imports = [
         ./tests
-        ./modules
+        ./config-modules
       ];
       flake.lib = import ./lib.nix;
     };

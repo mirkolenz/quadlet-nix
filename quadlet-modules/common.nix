@@ -7,29 +7,46 @@
 }:
 {
   options = {
-    serviceName = lib.mkOption { readOnly = true; };
-    podmanName = lib.mkOption { readOnly = true; };
-    ref = lib.mkOption { readOnly = true; };
-    text = lib.mkOption { readOnly = true; };
+    # readonly options
+    serviceName = lib.mkOption {
+      readOnly = true;
+      type = lib.types.str;
+    };
+    podmanName = lib.mkOption {
+      readOnly = true;
+      type = lib.types.str;
+    };
+    ref = lib.mkOption {
+      readOnly = true;
+      type = lib.types.str;
+    };
+    text = lib.mkOption {
+      readOnly = true;
+      type = lib.types.str;
+    };
 
+    # internal options
+    systemdConfig = lib.mkOption {
+      internal = true;
+      type = lib.types.attrsOf lib'.unitOption;
+    };
+    autoStartTarget = lib.mkOption {
+      internal = true;
+      type = lib.types.str;
+      default = "default.target";
+    };
+
+    # regular options
     name = lib.mkOption {
       type = lib.types.str;
       default = name;
-    };
-    uid = lib.mkOption {
-      type = with lib.types; nullOr int;
-      example = 1000;
-      default = null;
     };
     autoStart = lib.mkOption {
       type = lib.types.bool;
       default = true;
     };
 
-    systemdConfig = lib.mkOption {
-      type = lib.types.attrsOf lib'.unitOption;
-    };
-
+    # unit options
     unitConfig = lib'.mkUnitOption { };
     serviceConfig = lib'.mkUnitOption { };
     installConfig = lib'.mkUnitOption { };
@@ -37,9 +54,7 @@
   };
   config = {
     installConfig = {
-      WantedBy = lib.mkIf config.autoStart (
-        if config.uid == null then [ "multi-user.target" ] else [ "default.target" ]
-      );
+      WantedBy = lib.mkIf config.autoStart [ config.autoStartTarget ];
     };
     serviceConfig = {
       Restart = "always";
@@ -52,9 +67,6 @@
       Install = config.installConfig;
       Service = config.serviceConfig;
       Quadlet = config.quadletConfig;
-    };
-    unitConfig = {
-      ConditionUser = lib.mkIf (config.uid != null) config.uid;
     };
     text = lib'.mkUnitText config.systemdConfig;
   };
