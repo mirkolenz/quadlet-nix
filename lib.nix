@@ -7,10 +7,12 @@ rec {
 
   mkUnitText =
     config:
-    lib.concatMapAttrsStringSep "\n" (name: value: ''
-      [${name}]
-      ${systemdUtils.lib.attrsToSection value}
-    '') config;
+    lib.concatLines (
+      lib.mapAttrsToList (name: value: ''
+        [${name}]
+        ${systemdUtils.lib.attrsToSection value}
+      '') config
+    );
 
   mkUnitOption =
     attrs:
