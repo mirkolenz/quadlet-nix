@@ -58,10 +58,7 @@ let
     lib.nameValuePair obj.serviceName {
       overrideStrategy = "asDropin";
       # podman rootless requires "newuidmap" (the suid version, not the non-suid one from pkgs.shadow)
-      serviceConfig.ExecSearchPath = [
-        "/run/wrappers/bin"
-        "/usr/bin"
-      ];
+      serviceConfig.ExecSearchPath = [ "/run/wrappers/bin" ];
       # Inject X-RestartIfChanged=${hash} for NixOS to detect changes.
       unitConfig.X-QuadletNixHash = builtins.hashString "sha256" obj.text;
     };
