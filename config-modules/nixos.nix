@@ -42,19 +42,28 @@ let
   duplicateNames = lib.intersectLists (lib.attrNames cfg.containers) (lib.attrNames cfg.pods);
 
   mkAutoUpdate =
-    autoStartTarget:
+    autoStartTarget: conditionUsers:
     import ./update.nix {
-      inherit lib podman autoStartTarget;
+      inherit
+        lib
+        podman
+        autoStartTarget
+        conditionUsers
+        ;
       inherit (cfg.autoUpdate) startAt;
     };
 
-  mkUnitOverride =
+  mkServiceOverride =
     obj:
     lib.nameValuePair obj.serviceName {
       overrideStrategy = "asDropin";
-      text = lib'.mkUnitText {
-        Unit.X-QuadletNixHash = builtins.hashString "sha256" obj.text;
-      };
+      # podman rootless requires "newuidmap" (the suid version, not the non-suid one from pkgs.shadow)
+      serviceConfig.ExecSearchPath = [
+        "/run/wrappers/bin"
+        "/usr/bin"
+      ];
+      # Inject X-RestartIfChanged=${hash} for NixOS to detect changes.
+      unitConfig.X-QuadletNixHash = builtins.hashString "sha256" obj.text;
     };
 
   mkQuadletName =
@@ -155,19 +164,26 @@ in
         }) allObjects
       )
     );
-    # Inject X-RestartIfChanged=${hash} for NixOS to detect changes.
-    systemd.units = lib.listToAttrs (map mkUnitOverride rootfulObjects);
-    systemd.user.units = lib.listToAttrs (map mkUnitOverride rootlessObjects);
-
-    systemd.services.quadlet-auto-update = lib.mkIf (
-      cfg.autoUpdate.enable && lib.length rootfulObjects > 0
-    ) (mkAutoUpdate "multi-user.target");
-    systemd.user.services.quadlet-auto-update =
-      lib.mkIf (cfg.autoUpdate.enable && lib.length rootlessObjects > 0)
-        (
-          lib.recursiveUpdate (mkAutoUpdate "default.target") {
-            unitConfig.ConditionUser = lib.concatMapStringsSep "|" toString rootlessUsers;
-          }
+    systemd.services = lib.mkMerge [
+      (lib.listToAttrs (map mkServiceOverride rootfulObjects))
+      {
+        quadlet-auto-update = lib.mkIf (cfg.autoUpdate.enable && lib.length rootfulObjects > 0) (
+          mkAutoUpdate "multi-user.target" [ ]
         );
+      }
+    ];
+    systemd.user.services = lib.mkMerge [
+      (lib.listToAttrs (map mkServiceOverride rootlessObjects))
+      {
+        quadlet-auto-update = lib.mkIf (cfg.autoUpdate.enable && lib.length rootlessObjects > 0) (
+          mkAutoUpdate "default.target" rootlessUsers
+        );
+        # solves `Unable to locate executable 'sh': No such file or directory`
+        podman-user-wait-network-online = lib.mkIf (lib.length rootlessObjects > 0) {
+          overrideStrategy = "asDropin";
+          serviceConfig.ExecSearchPath = [ "/bin" ];
+        };
+      }
+    ];
   };
 }

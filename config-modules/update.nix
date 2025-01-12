@@ -3,6 +3,7 @@
   lib,
   startAt,
   autoStartTarget,
+  conditionUsers,
 }:
 {
   description = "Quadlet auto-update";
@@ -10,12 +11,16 @@
   wants = [ "network-online.target" ];
   after = [ "network-online.target" ];
   inherit startAt;
+  script = ''
+    ${lib.getExe podman} auto-update
+    ${lib.getExe podman} image prune -f
+  '';
   serviceConfig = {
     Type = "oneshot";
-    Environment = "PATH=/run/wrappers/bin:/usr/bin";
-    ExecStart = "${lib.getExe podman} auto-update";
-    ExecStartPost = "${lib.getExe podman} image prune -f";
     TimeoutStartSec = 900;
     TimeoutStopSec = 10;
   };
+  unitConfig.ConditionUser = lib.mkIf (lib.length conditionUsers > 0) (
+    lib.concatMapStringsSep "|" toString conditionUsers
+  );
 }

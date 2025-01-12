@@ -58,8 +58,6 @@
     };
     serviceConfig = {
       Restart = "always";
-      # podman rootless requires "newuidmap" (the suid version, not the non-suid one from pkgs.shadow)
-      Environment = "PATH=/run/wrappers/bin:/usr/bin";
       TimeoutStartSec = lib.mkDefault 900;
     };
     systemdConfig = {
