@@ -35,12 +35,11 @@ let
   rootlessUsers = lib.unique (map (obj: obj.uid) rootlessObjects);
 
   mkAutoUpdate =
-    autoStartTarget: conditionUsers:
+    conditionUsers:
     import ./update.nix {
       inherit
         lib
         podman
-        autoStartTarget
         conditionUsers
         ;
       inherit (cfg.autoUpdate) startAt;
@@ -141,7 +140,7 @@ in
       (lib.listToAttrs (map mkServiceOverride rootfulObjects))
       {
         quadlet-auto-update = lib.mkIf (cfg.autoUpdate.enable && lib.length rootfulObjects > 0) (
-          mkAutoUpdate "multi-user.target" [ ]
+          mkAutoUpdate null
         );
       }
     ];
@@ -149,7 +148,7 @@ in
       (lib.listToAttrs (map mkServiceOverride rootlessObjects))
       {
         quadlet-auto-update = lib.mkIf (cfg.autoUpdate.enable && lib.length rootlessObjects > 0) (
-          mkAutoUpdate "default.target" rootlessUsers
+          mkAutoUpdate rootlessUsers
         );
         # solves `Unable to locate executable 'sh': No such file or directory`
         podman-user-wait-network-online = lib.mkIf (lib.length rootlessObjects > 0) {

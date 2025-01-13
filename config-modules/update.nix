@@ -2,12 +2,10 @@
   podman,
   lib,
   startAt,
-  autoStartTarget,
-  conditionUsers,
+  conditionUsers ? null,
 }:
 {
   description = "Quadlet auto-update";
-  wantedBy = [ autoStartTarget ];
   wants = [ "network-online.target" ];
   after = [ "network-online.target" ];
   inherit startAt;
@@ -19,8 +17,9 @@
     Type = "oneshot";
     TimeoutStartSec = 900;
     TimeoutStopSec = 10;
+    ExecSearchPath = [ "/run/wrappers/bin" ];
   };
-  unitConfig.ConditionUser = lib.mkIf (lib.length conditionUsers > 0) (
+  unitConfig.ConditionUser = lib.mkIf (conditionUsers != null && lib.length conditionUsers > 0) (
     lib.concatMapStringsSep "|" toString conditionUsers
   );
 }
