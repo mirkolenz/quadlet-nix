@@ -8,14 +8,18 @@
 }:
 {
   options = {
-    containerConfig = lib'.mkUnitOption { };
+    containerConfig = lib'.mkUnitOption {
+      description = "The systemd container configuration";
+    };
     imageFile = lib.mkOption {
       type = with lib.types; nullOr package;
       default = null;
+      description = "The image file to load before starting the service";
     };
     imageStream = lib.mkOption {
       type = with lib.types; nullOr package;
       default = null;
+      description = "The image stream to load before starting the service";
     };
   };
   config =

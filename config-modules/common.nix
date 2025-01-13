@@ -10,13 +10,11 @@ in
     virtualisation.quadlet = {
       enable = lib.mkEnableOption "quadlet";
       autoUpdate = {
-        enable = lib.mkOption {
-          type = types.bool;
-          default = true;
-        };
+        enable = lib.mkEnableOption "quadlet auto update";
         startAt = lib.mkOption {
           type = types.str;
           default = "*-*-* 00:00:00";
+          description = "The time to start the auto update";
         };
       };
       allObjects = lib.mkOption {

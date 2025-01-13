@@ -5,7 +5,9 @@
 }:
 {
   options = {
-    volumeConfig = lib'.mkUnitOption { };
+    volumeConfig = lib'.mkUnitOption {
+      description = "The systemd volume configuration";
+    };
   };
   config = {
     ref = "${config.name}.volume";

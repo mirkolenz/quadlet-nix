@@ -5,7 +5,9 @@
 }:
 {
   options = {
-    buildConfig = lib'.mkUnitOption { };
+    buildConfig = lib'.mkUnitOption {
+      description = "The systemd build configuration";
+    };
   };
   config = {
     ref = "${config.name}.build";

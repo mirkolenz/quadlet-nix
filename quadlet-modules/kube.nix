@@ -5,7 +5,9 @@
 }:
 {
   options = {
-    kubeConfig = lib'.mkUnitOption { };
+    kubeConfig = lib'.mkUnitOption {
+      description = "The systemd kube configuration";
+    };
   };
   config = {
     ref = "${config.name}.kube";

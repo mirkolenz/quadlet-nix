@@ -47,30 +47,37 @@ in
       containers = lib.mkOption {
         type = types.attrsOf (mkSubmodule ../quadlet-modules/container.nix);
         default = { };
+        description = "The containers to manage";
       };
       networks = lib.mkOption {
         type = types.attrsOf (mkSubmodule ../quadlet-modules/network.nix);
         default = { };
+        description = "The networks to manage";
       };
       pods = lib.mkOption {
         type = types.attrsOf (mkSubmodule ../quadlet-modules/pod.nix);
         default = { };
+        description = "The pods to manage";
       };
       kubes = lib.mkOption {
         type = types.attrsOf (mkSubmodule ../quadlet-modules/kube.nix);
         default = { };
+        description = "The kubes to manage";
       };
       volumes = lib.mkOption {
         type = types.attrsOf (mkSubmodule ../quadlet-modules/volume.nix);
         default = { };
+        description = "The volumes to manage";
       };
       builds = lib.mkOption {
         type = types.attrsOf (mkSubmodule ../quadlet-modules/build.nix);
         default = { };
+        description = "The builds to manage";
       };
       images = lib.mkOption {
         type = types.attrsOf (mkSubmodule ../quadlet-modules/image.nix);
         default = { };
+        description = "The images to manage";
       };
     };
   };

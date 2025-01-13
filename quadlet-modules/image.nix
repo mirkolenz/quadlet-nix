@@ -5,7 +5,9 @@
 }:
 {
   options = {
-    imageConfig = lib'.mkUnitOption { };
+    imageConfig = lib'.mkUnitOption {
+      description = "The systemd image configuration";
+    };
   };
   config = {
     ref = "${config.name}.image";

@@ -5,7 +5,9 @@
 }:
 {
   options = {
-    networkConfig = lib'.mkUnitOption { };
+    networkConfig = lib'.mkUnitOption {
+      description = "The systemd network configuration";
+    };
   };
   config = {
     ref = "${config.name}.network";

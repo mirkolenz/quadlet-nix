@@ -9,6 +9,7 @@
       type = with lib.types; nullOr int;
       example = 1000;
       default = null;
+      description = "The user ID to run the service as";
     };
   };
   config = lib.mkIf (config.uid != null) {

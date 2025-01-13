@@ -5,7 +5,9 @@
 }:
 {
   options = {
-    podConfig = lib'.mkUnitOption { };
+    podConfig = lib'.mkUnitOption {
+      description = "The systemd pod configuration";
+    };
   };
   config = {
     ref = "${config.name}.pod";
