@@ -17,6 +17,8 @@
       imports = [
         ./tests
         ./config-modules
+        # TODO: Enable and add descriptions to all options
+        # ./docs.nix
       ];
       flake.lib = import ./lib.nix;
     };
