@@ -5,14 +5,14 @@
 rec {
   inherit (systemdUtils.unitOptions) unitOption;
 
-  mkUnitText =
-    config:
-    lib.concatLines (
-      lib.mapAttrsToList (name: value: ''
-        [${name}]
-        ${systemdUtils.lib.attrsToSection value}
-      '') config
-    );
+  mkSectionText =
+    name: attrs:
+    lib.optionalString (attrs != { }) ''
+      [${name}]
+      ${systemdUtils.lib.attrsToSection attrs}
+    '';
+
+  mkUnitText = config: lib.concatLines (lib.mapAttrsToList mkSectionText config);
 
   mkUnitOption =
     attrs:
