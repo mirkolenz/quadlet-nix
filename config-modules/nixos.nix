@@ -22,7 +22,7 @@ let
       imports = [
         path
         ../quadlet-modules/common.nix
-        ../quadlet-modules/uid.nix
+        ../quadlet-modules/nixos.nix
       ];
       _module.args = {
         inherit lib' podman;
@@ -30,16 +30,9 @@ let
       };
     };
 
-  allObjects = lib.concatMap lib.attrValues [
-    cfg.containers
-    cfg.networks
-  ];
-
-  rootfulObjects = lib.filter (obj: obj.uid == null) allObjects;
-  rootlessObjects = lib.filter (obj: obj.uid != null) allObjects;
+  rootfulObjects = lib.filter (obj: obj.uid == null) cfg.allObjects;
+  rootlessObjects = lib.filter (obj: obj.uid != null) cfg.allObjects;
   rootlessUsers = lib.unique (map (obj: obj.uid) rootlessObjects);
-
-  duplicateNames = lib.intersectLists (lib.attrNames cfg.containers) (lib.attrNames cfg.pods);
 
   mkAutoUpdate =
     autoStartTarget: conditionUsers:
@@ -82,19 +75,9 @@ let
       "/run/user/${toString obj.uid}/systemd/generator/${obj.serviceName}.service";
 in
 {
+  imports = [ ./common.nix ];
   options = {
     virtualisation.quadlet = {
-      enable = lib.mkEnableOption "quadlet";
-      autoUpdate = {
-        enable = lib.mkOption {
-          type = types.bool;
-          default = true;
-        };
-        startAt = lib.mkOption {
-          type = types.str;
-          default = "*-*-* 00:00:00";
-        };
-      };
       containers = lib.mkOption {
         type = types.attrsOf (mkSubmodule ../quadlet-modules/container.nix);
         default = { };
@@ -126,30 +109,16 @@ in
     };
   };
 
-  config = lib.mkIf (cfg.enable && lib.length allObjects > 0) {
-    assertions =
-      [
-        {
-          assertion = duplicateNames == [ ];
-          message = ''
-            The container/pod names should be unique!
-            See: https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html#podname
-            The following names are not unique: ${lib.concatStringsSep " " duplicateNames}
-          '';
-        }
-      ]
-      ++ (map (obj: {
-        assertion = obj.imageFile == null || obj.imageStream == null;
-        message = "Only one of imageFile and imageStream can be set for container ${obj.name}";
-      }) (lib.attrValues cfg.containers));
+  config = lib.mkIf (cfg.enable && lib.length cfg.allObjects > 0) {
     virtualisation.podman.enable = true;
+
     environment.etc = lib.listToAttrs (
       map (
         obj:
         lib.nameValuePair (mkQuadletName obj) {
           inherit (obj) text;
         }
-      ) allObjects
+      ) cfg.allObjects
     );
     # The symlinks are not necessary for the services to be honored by systemd,
     # but necessary for NixOS activation process to pick them up for updates.
@@ -158,7 +127,7 @@ in
         map (obj: {
           name = mkSystemdName obj;
           path = mkSystemdPath obj;
-        }) allObjects
+        }) cfg.allObjects
       )
     );
     systemd.services = lib.mkMerge [
