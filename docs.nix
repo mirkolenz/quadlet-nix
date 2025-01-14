@@ -20,6 +20,11 @@
                 virtualisation.podman = lib.mkOption { internal = true; };
                 systemd = lib.mkOption { internal = true; };
               };
+              config = {
+                _module.args = {
+                  inherit pkgs;
+                };
+              };
             }
           )
         ];
