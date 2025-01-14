@@ -1,4 +1,3 @@
-{ inputs, ... }:
 {
   config,
   lib,
@@ -7,12 +6,12 @@
 }:
 let
   inherit (lib) types;
-  nixosUtils = import "${inputs.nixpkgs}/nixos/lib/utils.nix" { inherit lib config pkgs; };
+  nixosUtils = import "${pkgs.path}/nixos/lib/utils.nix" { inherit lib config pkgs; };
   systemdUtils = nixosUtils.systemdUtils;
 
   cfg = config.virtualisation.quadlet;
   podman = config.virtualisation.podman.package or pkgs.podman;
-  lib' = inputs.self.lib {
+  lib' = import ../lib.nix {
     inherit lib systemdUtils;
   };
 

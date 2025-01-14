@@ -1,4 +1,4 @@
-{ lib, inputs, ... }:
+{ lib, self, ... }:
 {
   # basic checks to see if the module can be evaluated
   flake.nixosConfigurations = lib.genAttrs [ "x86_64-linux" "aarch64-linux" ] (
@@ -9,7 +9,7 @@
         { modulesPath, lib, ... }:
         {
           imports = [
-            inputs.self.nixosModules.quadlet
+            self.nixosModules.quadlet
             "${modulesPath}/virtualisation/qemu-vm.nix"
           ];
           system.stateVersion = lib.trivial.release;
@@ -30,7 +30,7 @@
           defaults =
             { pkgs, ... }:
             {
-              imports = [ inputs.self.nixosModules.quadlet ];
+              imports = [ self.nixosModules.quadlet ];
               environment.systemPackages = with pkgs; [ curl ];
               virtualisation.quadlet.enable = true;
               virtualisation = {
