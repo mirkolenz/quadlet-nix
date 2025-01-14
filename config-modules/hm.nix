@@ -113,34 +113,36 @@ in
     systemd.user.services = lib.mkMerge [
       (lib.listToAttrs (map mkServiceOverride cfg.allObjects))
       {
-        quadlet-auto-update = let
-          defs = import ./update.nix {
-            inherit lib podman;
-            inherit (cfg.autoUpdate) startAt;
+        quadlet-auto-update =
+          let
+            defs = import ./update.nix {
+              inherit lib podman;
+              inherit (cfg.autoUpdate) startAt;
+            };
+          in
+          lib.mkIf cfg.autoUpdate.enable {
+            Service = defs.serviceConfig // {
+              ExecStart = defs.script;
+            };
+            Unit = defs.unitConfig // {
+              Description = defs.description;
+            };
+            Install = {
+              Wants = defs.wants;
+              After = defs.after;
+            };
           };
-        in lib.mkIf cfg.autoUpdate.enable {
-          Service = defs.serviceConfig // {
-            ExecStart = defs.script;
-          };
-          Unit = defs.unitConfig // {
-            Description = defs.description;
-          };
-          Install = {
-            Wants = defs.wants;
-            After = defs.after;
-          };
-        };
       }
     ];
-    systemd.user.timers.quadlet-auto-update = mkIf cfg.autoUpdate.enable {
-        Unit = {
-          Description = "Quadlet auto-update timer";
-        };
-        Timer = {
-          OnCalendar = cfg.autoUpdate.startAt;
-          Persistent = true;
-        };
-        Install.WantedBy = [ "timers.target" ];
+    systemd.user.timers.quadlet-auto-update = lib.mkIf cfg.autoUpdate.enable {
+      Unit = {
+        Description = "Quadlet auto-update timer";
       };
+      Timer = {
+        OnCalendar = cfg.autoUpdate.startAt;
+        Persistent = true;
+      };
+      Install.WantedBy = [ "timers.target" ];
+    };
   };
 }
