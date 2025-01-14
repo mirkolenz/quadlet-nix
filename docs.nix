@@ -1,4 +1,4 @@
-args@{ config, self, ... }:
+{ self, ... }:
 {
   perSystem =
     { pkgs, ... }:
@@ -9,7 +9,7 @@ args@{ config, self, ... }:
         baseModules = [ ];
         modulesLocation = ./config-modules/nixos.nix;
         modules = [
-          (import ./config-modules/nixos.nix args)
+          self.nixosModules.default
           (
             { lib, ... }:
             {
