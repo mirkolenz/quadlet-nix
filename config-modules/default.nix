@@ -1,13 +1,13 @@
-{ config, ... }:
+{ ... }:
 {
   flake = {
     nixosModules = {
-      default = config.flake.nixosModules.quadlet;
-      quadlet = import ./nixos.nix;
+      default = ./nixos.nix;
+      quadlet = ./nixos.nix;
     };
     homeManagerModules = {
-      default = config.flake.homeManagerModules.quadlet;
-      quadlet = import ./hm.nix;
+      default = ./hm.nix;
+      quadlet = ./hm.nix;
     };
   };
 }
