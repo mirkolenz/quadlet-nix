@@ -7,7 +7,6 @@
       eval = import "${pkgs.path}/nixos/lib/eval-config.nix" {
         system = null;
         baseModules = [ ];
-        modulesLocation = ./config-modules/nixos.nix;
         modules = [
           self.nixosModules.default
           (
@@ -19,6 +18,7 @@
                 environment = lib.mkOption { internal = true; };
                 virtualisation.podman = lib.mkOption { internal = true; };
                 systemd = lib.mkOption { internal = true; };
+                _module.args = lib.mkOption { internal = true; };
               };
               config = {
                 _module.args = {
@@ -39,7 +39,6 @@
         substitute ${docs.optionsCommonMark} $out/docs.md \
           --replace-fail "file://${self.outPath}" "https://github.com/mirkolenz/quadlet-nix/blob/main" \
           --replace-fail "${self.outPath}" "quadlet-nix"
-        sed -i '/^## virtualisation\\[.]quadlet\\[.]enable$/,$!d' $out/docs.md
       '';
     };
 }
