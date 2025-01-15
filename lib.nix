@@ -1,8 +1,13 @@
 {
   lib,
-  systemdUtils,
+  pkgs,
 }:
 rec {
+  nixosUtils = import "${pkgs.path}/nixos/lib/utils.nix" {
+    inherit lib pkgs;
+    config = { };
+  };
+  inherit (nixosUtils) systemdUtils;
   inherit (systemdUtils.unitOptions) unitOption;
 
   mkSectionText =
@@ -12,7 +17,7 @@ rec {
       ${systemdUtils.lib.attrsToSection attrs}
     '';
 
-  mkUnitText = config: lib.concatLines (lib.mapAttrsToList mkSectionText config);
+  mkUnitText = unitConfig: lib.concatLines (lib.mapAttrsToList mkSectionText unitConfig);
 
   mkUnitOption =
     attrs:

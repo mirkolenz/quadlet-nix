@@ -7,14 +7,10 @@
 }:
 let
   inherit (lib) types;
-  nixosUtils = import "${pkgs.path}/nixos/lib/utils.nix" { inherit lib config pkgs; };
-  systemdUtils = nixosUtils.systemdUtils;
 
   cfg = config.virtualisation.quadlet;
   podman = osConfig.virtualisation.podman.package or pkgs.podman;
-  lib' = import ../lib.nix {
-    inherit lib systemdUtils;
-  };
+  lib' = import ../lib.nix { inherit lib pkgs; };
 
   mkSubmodule =
     path:
