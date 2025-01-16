@@ -34,7 +34,7 @@
         '';
       };
       packages.docs = pkgs.runCommand "docs.md" { } ''
-        cat ${docs.optionsCommonMark} > $out
+        sed '1s/^/# quadlet-nix\n\n/' ${docs.optionsCommonMark} > $out
         ${lib.getExe pkgs.nodePackages.prettier} --write $out
       '';
     };
