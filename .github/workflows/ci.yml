@@ -1,0 +1,24 @@
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+jobs:
+  check:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@v16
+      - uses: DeterminateSystems/magic-nix-cache-action@v8
+      - run: nix flake check --show-trace --print-build-logs
+  release:
+    runs-on: ubuntu-latest
+    if: ${{ github.repository_owner == 'mirkolenz' && github.event_name == 'push' }}
+    needs: check
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cihelper/action-semanticrelease-generic@v1
