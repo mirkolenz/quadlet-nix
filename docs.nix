@@ -1,29 +1,20 @@
-{ self, ... }:
+{ self, lib, ... }:
 {
   perSystem =
-    { pkgs, ... }:
+    { pkgs, config, ... }:
     let
-      # Evaluate a NixOS configuration
-      eval = import "${pkgs.path}/nixos/lib/eval-config.nix" {
-        system = null;
-        baseModules = [ ];
+      eval = lib.evalModules {
         modules = [
           self.nixosModules.default
           (
             { lib, ... }:
             {
-              options = {
-                # add stubs for upstream modules
-                assertions = lib.mkOption { internal = true; };
-                environment = lib.mkOption { internal = true; };
-                virtualisation.podman = lib.mkOption { internal = true; };
-                systemd = lib.mkOption { internal = true; };
-                _module.args = lib.mkOption { internal = true; };
-              };
+              options._module.args = lib.mkOption { visible = false; };
               config = {
                 _module.args = {
                   inherit pkgs;
                 };
+                _module.check = false;
               };
             }
           )
@@ -31,14 +22,20 @@
       };
       docs = pkgs.nixosOptionsDoc {
         inherit (eval) options;
+        # hide /nix/store/* prefix
+        transformOptions = opt: opt // { declarations = [ ]; };
       };
     in
     {
-      packages.docs = pkgs.runCommand "docs" { } ''
-        mkdir -p $out
-        substitute ${docs.optionsCommonMark} $out/docs.md \
-          --replace-fail "file://${self.outPath}" "https://github.com/mirkolenz/quadlet-nix/blob/main" \
-          --replace-fail "${self.outPath}" "quadlet-nix"
+      apps.docs.program = pkgs.writeShellApplication {
+        name = "docs";
+        text = ''
+          cp -f ${config.packages.docs} ./docs.md
+        '';
+      };
+      packages.docs = pkgs.runCommand "docs.md" { } ''
+        cat ${docs.optionsCommonMark} > $out
+        ${lib.getExe pkgs.nodePackages.prettier} --write $out
       '';
     };
 }
