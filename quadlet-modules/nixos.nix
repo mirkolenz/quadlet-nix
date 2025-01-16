@@ -9,7 +9,10 @@
       type = with lib.types; nullOr int;
       example = 1000;
       default = null;
-      description = "The user ID to run the service as";
+      description = ''
+        The user ID to run the service as.
+        _Note:_: Only available in the NixOS module.
+      '';
     };
   };
   config = lib.mkIf (config.uid != null) {

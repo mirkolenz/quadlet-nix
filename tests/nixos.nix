@@ -25,7 +25,7 @@
             };
           };
           nginx-image-stream = {
-            imageStream = pkgs.dockerTools.examples.nginx.stream;
+            imageStream = pkgs.dockerTools.examples.nginxStream;
             containerConfig = {
               PublishPort = [ "8081:80" ];
             };
