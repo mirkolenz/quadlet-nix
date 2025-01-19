@@ -34,5 +34,5 @@ You can get started with the following minimal configuration:
 }
 ```
 
-All available options are described in the [documentation](./docs.md).
+All available options are described in the [documentation](https://mirkolenz.github.io/quadlet-nix/options.html).
 You may also want to take a look at the [tests](./tests/nixos.nix) for more examples.

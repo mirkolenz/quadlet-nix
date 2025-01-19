@@ -1,0 +1,14 @@
+[book]
+title = "quadlet-nix"
+description = "NixOS module for Quadlet / podman-systemd"
+authors = ["Mirko Lenz"]
+language = "en"
+multilingual = false
+
+[output.html]
+default-theme = "light"
+git-repository-icon = "fa-github"
+git-repository-url = "https://github.com/mirkolenz/quadlet-nix"
+no-section-label = true
+preferred-dark-theme = "ayu"
+smart-punctuation = true
