@@ -1,7 +1,7 @@
 {
   lib,
   pkgs,
-  ...
+  nixosOptionsDoc,
 }:
 let
   eval = lib.evalModules {
@@ -21,7 +21,7 @@ let
       )
     ];
   };
-  docs = pkgs.nixosOptionsDoc {
+  docs = nixosOptionsDoc {
     inherit (eval) options;
     # hide /nix/store/* prefix
     transformOptions = opt: opt // { declarations = [ ]; };
