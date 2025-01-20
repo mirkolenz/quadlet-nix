@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.1](https://github.com/mirkolenz/quadlet-nix/compare/v1.0.0...v1.0.1) (2025-01-20)
+
+### Bug Fixes
+
+* trigger release to build website ([e992704](https://github.com/mirkolenz/quadlet-nix/commit/e992704eddcce5c8a8f5fbe99f4b7346f7566f57))
+
 ## 1.0.0 (2025-01-16)
 
 ### Features
