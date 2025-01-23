@@ -28,8 +28,6 @@ let
   mkServiceOverride =
     obj:
     lib.nameValuePair obj.serviceName {
-      # podman rootless requires "newuidmap" (the suid version, not the non-suid one from pkgs.shadow)
-      Service.ExecSearchPath = [ "/run/wrappers/bin" ];
       # Inject X-RestartIfChanged=${hash} for NixOS to detect changes.
       Unit.X-QuadletNixHash = builtins.hashString "sha256" obj.text;
       Install = { inherit (obj.installConfig) WantedBy; };
