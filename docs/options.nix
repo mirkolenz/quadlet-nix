@@ -3,10 +3,11 @@
   pkgs,
   nixosOptionsDoc,
 }:
+module:
 let
   eval = lib.evalModules {
     modules = [
-      ../config-modules/nixos.nix
+      module
       (
         { lib, ... }:
         {

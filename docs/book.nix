@@ -4,7 +4,7 @@
   mdbook,
   writeShellApplication,
   python3,
-  optionsMarkdown,
+  optionPackages,
 }:
 stdenvNoCC.mkDerivation (finalAttrs: {
   name = "book";
@@ -19,8 +19,14 @@ stdenvNoCC.mkDerivation (finalAttrs: {
   buildPhase = ''
     runHook preBuild
 
-    ln -s ${optionsMarkdown} src/options.md
     ln -s ${../README.md} src/README.md
+
+    ${lib.concatMapStringsSep "\n" (option: ''
+      echo "[${option.title}](${option.name}.md)" >> src/SUMMARY.md
+      echo "" >> src/SUMMARY.md
+      ln -s ${option.value} src/${option.name}.md
+    '') optionPackages}
+
     mdbook build
 
     runHook postBuild
