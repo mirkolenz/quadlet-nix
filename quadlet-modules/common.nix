@@ -65,11 +65,30 @@
     quadletConfig = lib'.mkUnitOption {
       description = "The systemd quadlet configuration";
     };
+
+    # nix-specific install options
+    aliases = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      description = "The list of aliases for the systemd unit";
+    };
+    wantedBy = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      description = "The list of systemd targets to install the unit into";
+    };
+    requiredBy = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      description = "The list of systemd targets that require the unit";
+    };
+    upheldBy = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      description = "The list of systemd targets that uphold the unit";
+    };
   };
   config = {
-    installConfig = {
-      WantedBy = lib.mkIf config.autoStart [ config.autoStartTarget ];
-    };
     serviceConfig = {
       Restart = "always";
       TimeoutStartSec = lib.mkDefault 900;
@@ -81,5 +100,6 @@
       Quadlet = config.quadletConfig;
     };
     text = lib'.mkUnitText config.systemdConfig;
+    wantedBy = lib.mkIf config.autoStart [ config.autoStartTarget ];
   };
 }

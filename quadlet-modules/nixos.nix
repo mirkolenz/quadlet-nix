@@ -12,8 +12,12 @@
       description = "The user ID to run the service as.";
     };
   };
-  config = lib.mkIf (config.uid != null) {
-    autoStartTarget = lib.mkIf (config.uid == null) "multi-user.target";
-    unitConfig.ConditionUser = config.uid;
-  };
+  config = lib.mkMerge [
+    (lib.mkIf (config.uid == null) {
+      autoStartTarget = "multi-user.target";
+    })
+    (lib.mkIf (config.uid != null) {
+      unitConfig.ConditionUser = config.uid;
+    })
+  ];
 }

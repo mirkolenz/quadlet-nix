@@ -46,6 +46,12 @@ let
       overrideStrategy = "asDropin";
       # Inject X-RestartIfChanged=${hash} for NixOS to detect changes.
       unitConfig.X-QuadletNixHash = builtins.hashString "sha256" obj.text;
+      inherit (obj)
+        aliases
+        wantedBy
+        requiredBy
+        upheldBy
+        ;
     };
 
   mkQuadletName =

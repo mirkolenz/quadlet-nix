@@ -30,7 +30,12 @@ let
     lib.nameValuePair obj.serviceName {
       # Inject X-RestartIfChanged=${hash} for NixOS to detect changes.
       Unit.X-QuadletNixHash = builtins.hashString "sha256" obj.text;
-      Install = { inherit (obj.installConfig) WantedBy; };
+      Install = {
+        Alias = obj.aliases;
+        WantedBy = obj.wantedBy;
+        RequiredBy = obj.requiredBy;
+        UpheldBy = obj.upheldBy;
+      };
     };
 in
 {
