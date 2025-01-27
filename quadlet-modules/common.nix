@@ -70,6 +70,7 @@
       description = "The systemd service configuration";
     };
     installConfig = lib'.mkUnitOption {
+      internal = true; # no longer needed, but kept for compatibility
       description = "The systemd install configuration";
     };
     quadletConfig = lib'.mkUnitOption {
