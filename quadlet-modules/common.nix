@@ -51,6 +51,16 @@
     autoStart = (lib.mkEnableOption "service auto-start") // {
       default = true;
     };
+    extraConfig = lib.mkOption {
+      type = lib.types.attrsOf lib'.unitOption;
+      default = { };
+      description = "Additional systemd unit configuration";
+    };
+    rawConfig = lib.mkOption {
+      type = lib.types.nullOr lib.types.lines;
+      default = null;
+      description = "Raw systemd unit configuration text";
+    };
 
     # unit options
     unitConfig = lib'.mkUnitOption {
@@ -99,7 +109,11 @@
       Service = config.serviceConfig;
       Quadlet = config.quadletConfig;
     };
-    text = lib'.mkUnitText config.finalConfig;
+    text =
+      if config.rawConfig != null then
+        config.rawConfig
+      else
+        lib'.mkUnitText (lib.recursiveUpdate config.finalConfig config.extraConfig);
     wantedBy = lib.mkIf config.autoStart [ config.autoStartTarget ];
   };
 }
