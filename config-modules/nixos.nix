@@ -17,7 +17,7 @@ let
       imports = [
         path
         ../quadlet-modules/common.nix
-        ../quadlet-modules/nixos.nix
+        ../quadlet-modules/uid.nix
       ];
       _module.args = {
         inherit lib' podman;
