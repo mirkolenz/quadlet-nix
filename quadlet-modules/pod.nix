@@ -15,6 +15,6 @@
     podmanName = config.podConfig.PodName or "systemd-${config.name}";
     unitConfig.Description = "Podman pod ${config.name}";
 
-    systemdConfig.Pod = config.podConfig;
+    finalConfig.Pod = config.podConfig;
   };
 }

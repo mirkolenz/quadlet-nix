@@ -15,6 +15,6 @@
     podmanName = "systemd-${config.name}";
     unitConfig.Description = "Podman kube ${config.name}";
 
-    systemdConfig.Kube = config.kubeConfig;
+    finalConfig.Kube = config.kubeConfig;
   };
 }

@@ -30,7 +30,7 @@
     };
 
     # internal options
-    systemdConfig = lib.mkOption {
+    finalConfig = lib.mkOption {
       internal = true;
       type = lib.types.attrsOf lib'.unitOption;
       description = "The merged systemd unit configuration";
@@ -93,13 +93,13 @@
       Restart = "always";
       TimeoutStartSec = lib.mkDefault 900;
     };
-    systemdConfig = {
+    finalConfig = {
       Unit = config.unitConfig;
       Install = config.installConfig;
       Service = config.serviceConfig;
       Quadlet = config.quadletConfig;
     };
-    text = lib'.mkUnitText config.systemdConfig;
+    text = lib'.mkUnitText config.finalConfig;
     wantedBy = lib.mkIf config.autoStart [ config.autoStartTarget ];
   };
 }

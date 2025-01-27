@@ -15,6 +15,6 @@
     podmanName = config.volumeConfig.VolumeName or "systemd-${config.name}";
     unitConfig.Description = "Podman volume ${config.name}";
 
-    systemdConfig.Volume = config.volumeConfig;
+    finalConfig.Volume = config.volumeConfig;
   };
 }

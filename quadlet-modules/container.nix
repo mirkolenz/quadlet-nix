@@ -53,6 +53,6 @@
       unitConfig.Description = "Podman container ${config.name}";
       serviceConfig.ExecStartPre = [ (lib.getExe prestart) ];
 
-      systemdConfig.Container = config.containerConfig;
+      finalConfig.Container = config.containerConfig;
     };
 }

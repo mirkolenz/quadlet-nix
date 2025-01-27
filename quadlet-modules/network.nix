@@ -15,6 +15,6 @@
     podmanName = config.networkConfig.NetworkName or "systemd-${config.name}";
     unitConfig.Description = "Podman network ${config.name}";
 
-    systemdConfig.Network = config.networkConfig;
+    finalConfig.Network = config.networkConfig;
   };
 }
