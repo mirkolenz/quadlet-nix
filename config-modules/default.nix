@@ -9,5 +9,9 @@
       default = ./hm.nix;
       quadlet = ./hm.nix;
     };
+    homeModules = {
+      default = ./hm.nix;
+      quadlet = ./hm.nix;
+    };
   };
 }
