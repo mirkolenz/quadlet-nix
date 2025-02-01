@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.0](https://github.com/mirkolenz/quadlet-nix/compare/v1.0.1...v1.1.0) (2025-02-01)
+
+### Features
+
+* add extraConfig and rawConfig ([2269f9b](https://github.com/mirkolenz/quadlet-nix/commit/2269f9bcf1c6dac9521d176e240bbe88cf38d37d))
+* add top-level install options ([673043c](https://github.com/mirkolenz/quadlet-nix/commit/673043caec399da75cf9c623f833b6152d8ef31b))
+
+### Bug Fixes
+
+* handle attrset type in unit config values ([0c8ceb0](https://github.com/mirkolenz/quadlet-nix/commit/0c8ceb0c1a7e841e26542d2787361c44b0209396))
+* no longer modify exec search path ([64a9b46](https://github.com/mirkolenz/quadlet-nix/commit/64a9b468ba5208b95832848387df1139574addf4))
+
 ## [1.0.1](https://github.com/mirkolenz/quadlet-nix/compare/v1.0.0...v1.0.1) (2025-01-20)
 
 ### Bug Fixes
