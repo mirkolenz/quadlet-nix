@@ -22,12 +22,18 @@
             containerConfig = {
               Image = "docker-archive:${pkgs.dockerTools.examples.nginx}";
               PublishPort = [ "8080:80" ];
+              Environment = {
+                TZ = "Europe/Berlin";
+              };
             };
           };
           nginx-image-stream = {
             imageStream = pkgs.dockerTools.examples.nginxStream;
             containerConfig = {
               PublishPort = [ "8081:80" ];
+              Environment = {
+                TZ = "Europe/Berlin";
+              };
             };
           };
           nginx-rootless = {
@@ -35,6 +41,9 @@
             containerConfig = {
               Image = "docker-archive:${pkgs.dockerTools.examples.nginx}";
               PublishPort = [ "8082:80" ];
+              Environment = {
+                TZ = "Europe/Berlin";
+              };
             };
           };
         };

@@ -10,11 +10,17 @@ rec {
   inherit (nixosUtils) systemdUtils;
   inherit (systemdUtils.unitOptions) unitOption;
 
+  mkSectionConfig =
+    attrs:
+    lib.mapAttrs (
+      _: value: if lib.isAttrs value then lib.mapAttrsToList (n: v: "${n}=${toString v}") value else value
+    ) attrs;
+
   mkSectionText =
     name: attrs:
     lib.optionalString (attrs != { }) ''
       [${name}]
-      ${systemdUtils.lib.attrsToSection attrs}
+      ${systemdUtils.lib.attrsToSection (mkSectionConfig attrs)}
     '';
 
   mkUnitText = unitConfig: lib.concatLines (lib.mapAttrsToList mkSectionText unitConfig);
