@@ -30,6 +30,7 @@
     };
 
     # internal options
+    # finalConfig is called `unit` in nixpkgs
     finalConfig = lib.mkOption {
       internal = true;
       type = lib.types.attrsOf lib'.unitOption;
@@ -43,10 +44,13 @@
     };
 
     # regular options
+    enable = (lib.mkEnableOption "the service") // {
+      default = true;
+    };
     name = lib.mkOption {
       type = lib.types.str;
       default = name;
-      description = "The name of the systemd unit";
+      description = "The attribute name used to derive the other names";
     };
     autoStart = (lib.mkEnableOption "service auto-start") // {
       default = true;
@@ -77,7 +81,8 @@
       description = "The systemd quadlet configuration";
     };
 
-    # nix-specific install options
+    # nix-specific options
+    # https://github.com/NixOS/nixpkgs/blob/master/nixos/lib/systemd-unit-options.nix
     aliases = lib.mkOption {
       type = lib.types.listOf lib.types.str;
       default = [ ];

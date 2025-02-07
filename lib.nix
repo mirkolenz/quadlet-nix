@@ -8,6 +8,7 @@ rec {
     config = { };
   };
   inherit (nixosUtils) systemdUtils;
+  # https://github.com/NixOS/nixpkgs/blob/master/nixos/lib/systemd-unit-options.nix
   inherit (systemdUtils.unitOptions) unitOption;
 
   mkSectionConfig =

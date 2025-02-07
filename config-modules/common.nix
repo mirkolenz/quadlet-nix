@@ -4,6 +4,15 @@ let
   cfg = config.virtualisation.quadlet;
 
   duplicateNames = lib.intersectLists (lib.attrNames cfg.containers) (lib.attrNames cfg.pods);
+  concatObjects = lib.concatMap lib.attrValues [
+    cfg.containers
+    cfg.networks
+    cfg.pods
+    cfg.kubes
+    cfg.volumes
+    cfg.builds
+    cfg.images
+  ];
 in
 {
   options = {
@@ -20,15 +29,7 @@ in
       allObjects = lib.mkOption {
         internal = true;
         readOnly = true;
-        default = lib.concatMap lib.attrValues [
-          cfg.containers
-          cfg.networks
-          cfg.pods
-          cfg.kubes
-          cfg.volumes
-          cfg.builds
-          cfg.images
-        ];
+        default = lib.filterAttrs (name: value: value.enable) concatObjects;
       };
     };
   };
