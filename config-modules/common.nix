@@ -29,7 +29,7 @@ in
       allObjects = lib.mkOption {
         internal = true;
         readOnly = true;
-        default = lib.filterAttrs (name: value: value.enable) concatObjects;
+        default = lib.filter (x: x.enable) concatObjects;
       };
     };
   };
