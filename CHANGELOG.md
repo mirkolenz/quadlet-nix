@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.1](https://github.com/mirkolenz/quadlet-nix/compare/v1.1.0...v1.1.1) (2025-02-09)
+
+### Bug Fixes
+
+* add `enable` option ([91306de](https://github.com/mirkolenz/quadlet-nix/commit/91306dedbe6c168c41e03cbcf74c0c85b3e6f36f))
+* add homeModules alias ([60f880c](https://github.com/mirkolenz/quadlet-nix/commit/60f880cb6e1249a7054900f5b60297c95bc93888))
+* properly handle `enable` option ([15efa3f](https://github.com/mirkolenz/quadlet-nix/commit/15efa3f08c38daf82a061853ea0dfcd8e080dd1a))
+
 ## [1.1.0](https://github.com/mirkolenz/quadlet-nix/compare/v1.0.1...v1.1.0) (2025-02-01)
 
 ### Features
