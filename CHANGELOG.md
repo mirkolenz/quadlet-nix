@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.1.2](https://github.com/mirkolenz/quadlet-nix/compare/v1.1.1...v1.1.2) (2025-02-16)
+
+### Bug Fixes
+
+* **lib:** no longer depend on upstream nixos/systemd utils ([ac2f199](https://github.com/mirkolenz/quadlet-nix/commit/ac2f1996dce23c842834dbd16cb4299d7d03ca6c))
+
 ## [1.1.1](https://github.com/mirkolenz/quadlet-nix/compare/v1.1.0...v1.1.1) (2025-02-09)
 
 ### Bug Fixes
