@@ -8,7 +8,7 @@
 }:
 {
   options = {
-    containerConfig = lib'.mkUnitOption {
+    containerConfig = lib'.mkSectionOption {
       description = "The systemd container configuration";
     };
     imageFile = lib.mkOption {

@@ -9,16 +9,19 @@
   };
   outputs =
     inputs@{ flake-parts, ... }:
-    flake-parts.lib.mkFlake { inherit inputs; } {
-      systems = [
-        "x86_64-linux"
-        "aarch64-linux"
-      ];
-      imports = [
-        ./tests
-        ./config-modules
-        ./docs
-      ];
-      flake.lib = import ./lib.nix;
-    };
+    flake-parts.lib.mkFlake { inherit inputs; } (
+      { lib, ... }:
+      {
+        systems = [
+          "x86_64-linux"
+          "aarch64-linux"
+        ];
+        imports = [
+          ./tests
+          ./config-modules
+          ./docs
+        ];
+        flake.lib = import ./lib.nix lib;
+      }
+    );
 }

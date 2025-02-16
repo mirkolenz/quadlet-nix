@@ -10,7 +10,7 @@ let
 
   cfg = config.virtualisation.quadlet;
   podman = osConfig.virtualisation.podman.package or pkgs.podman;
-  lib' = import ../lib.nix { inherit lib pkgs; };
+  lib' = import ../lib.nix lib;
 
   mkSubmodule =
     path:

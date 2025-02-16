@@ -5,7 +5,7 @@
 }:
 {
   options = {
-    kubeConfig = lib'.mkUnitOption {
+    kubeConfig = lib'.mkSectionOption {
       description = "The systemd kube configuration";
     };
   };

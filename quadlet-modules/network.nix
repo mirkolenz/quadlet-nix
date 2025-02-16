@@ -5,7 +5,7 @@
 }:
 {
   options = {
-    networkConfig = lib'.mkUnitOption {
+    networkConfig = lib'.mkSectionOption {
       description = "The systemd network configuration";
     };
   };

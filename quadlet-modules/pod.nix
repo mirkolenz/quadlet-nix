@@ -5,7 +5,7 @@
 }:
 {
   options = {
-    podConfig = lib'.mkUnitOption {
+    podConfig = lib'.mkSectionOption {
       description = "The systemd pod configuration";
     };
   };

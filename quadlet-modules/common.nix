@@ -31,9 +31,8 @@
 
     # internal options
     # finalConfig is called `unit` in nixpkgs
-    finalConfig = lib.mkOption {
+    finalConfig = lib'.mkUnitOption {
       internal = true;
-      type = lib.types.attrsOf lib'.unitOption;
       description = "The merged systemd unit configuration";
     };
     autoStartTarget = lib.mkOption {
@@ -55,9 +54,7 @@
     autoStart = (lib.mkEnableOption "service auto-start") // {
       default = true;
     };
-    extraConfig = lib.mkOption {
-      type = lib.types.attrsOf lib'.unitOption;
-      default = { };
+    extraConfig = lib'.mkUnitOption {
       description = "Additional systemd unit configuration";
     };
     rawConfig = lib.mkOption {
@@ -67,17 +64,17 @@
     };
 
     # unit options
-    unitConfig = lib'.mkUnitOption {
+    unitConfig = lib'.mkSectionOption {
       description = "The systemd unit configuration";
     };
-    serviceConfig = lib'.mkUnitOption {
+    serviceConfig = lib'.mkSectionOption {
       description = "The systemd service configuration";
     };
-    installConfig = lib'.mkUnitOption {
+    installConfig = lib'.mkSectionOption {
       internal = true; # no longer needed, but kept for compatibility
       description = "The systemd install configuration";
     };
-    quadletConfig = lib'.mkUnitOption {
+    quadletConfig = lib'.mkSectionOption {
       description = "The systemd quadlet configuration";
     };
 

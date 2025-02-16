@@ -9,7 +9,7 @@ let
 
   cfg = config.virtualisation.quadlet;
   podman = config.virtualisation.podman.package or pkgs.podman;
-  lib' = import ../lib.nix { inherit lib pkgs; };
+  lib' = import ../lib.nix lib;
 
   mkSubmodule =
     path:
@@ -17,7 +17,7 @@ let
       imports = [
         path
         ../quadlet-modules/common.nix
-        ../quadlet-modules/uid.nix
+        ../quadlet-modules/nixos.nix
       ];
       _module.args = {
         inherit lib' podman;

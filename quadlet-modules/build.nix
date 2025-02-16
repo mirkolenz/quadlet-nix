@@ -5,7 +5,7 @@
 }:
 {
   options = {
-    buildConfig = lib'.mkUnitOption {
+    buildConfig = lib'.mkSectionOption {
       description = "The systemd build configuration";
     };
   };

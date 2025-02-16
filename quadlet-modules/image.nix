@@ -5,7 +5,7 @@
 }:
 {
   options = {
-    imageConfig = lib'.mkUnitOption {
+    imageConfig = lib'.mkSectionOption {
       description = "The systemd image configuration";
     };
   };

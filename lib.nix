@@ -1,37 +1,56 @@
-{
-  lib,
-  pkgs,
-}:
-rec {
-  nixosUtils = import "${pkgs.path}/nixos/lib/utils.nix" {
-    inherit lib pkgs;
-    config = { };
-  };
-  inherit (nixosUtils) systemdUtils;
+lib: rec {
+  # https://github.com/NixOS/nixpkgs/blob/master/nixos/lib/systemd-lib.nix
   # https://github.com/NixOS/nixpkgs/blob/master/nixos/lib/systemd-unit-options.nix
-  inherit (systemdUtils.unitOptions) unitOption;
 
-  mkSectionConfig =
-    attrs:
-    lib.mapAttrs (
-      _: value: if lib.isAttrs value then lib.mapAttrsToList (n: v: "${n}=${toString v}") value else value
-    ) attrs;
+  mkValueString = lib.generators.mkValueStringDefault { };
+  mkKeyValue = lib.generators.mkKeyValueDefault { inherit mkValueString; } "=";
+
+  entryType = lib.mkOptionType {
+    name = "systemd option";
+    merge =
+      loc: defs:
+      let
+        defs' = lib.filterOverrides defs;
+      in
+      if lib.any (def: lib.isList def.value || lib.isAttrs def.value) defs' then
+        lib.concatMap (
+          def: if lib.isAttrs def.value then lib.mapAttrsToList mkKeyValue def.value else lib.toList def.value
+        ) defs'
+      else
+        lib.mergeEqualOption loc defs';
+  };
+  sectionType = lib.types.attrsOf entryType;
+  unitType = lib.types.attrsOf sectionType;
+
+  mkEntryConfig = n: v: map (v': mkKeyValue n v') (lib.toList v);
+
+  mkSectionConfig = attrs: lib.concatLines (lib.concatLists (lib.mapAttrsToList mkEntryConfig attrs));
 
   mkSectionText =
     name: attrs:
     lib.optionalString (attrs != { }) ''
       [${name}]
-      ${systemdUtils.lib.attrsToSection (mkSectionConfig attrs)}
+      ${mkSectionConfig attrs}
     '';
 
   mkUnitText = unitConfig: lib.concatLines (lib.mapAttrsToList mkSectionText unitConfig);
+
+  mkSectionOption =
+    attrs:
+    lib.mkOption (
+      attrs
+      // {
+        type = sectionType;
+        default = { };
+      }
+    );
 
   mkUnitOption =
     attrs:
     lib.mkOption (
       attrs
       // {
-        type = lib.types.attrsOf unitOption;
+        type = unitType;
         default = { };
       }
     );

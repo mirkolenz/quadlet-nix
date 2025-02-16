@@ -5,7 +5,7 @@
 }:
 {
   options = {
-    volumeConfig = lib'.mkUnitOption {
+    volumeConfig = lib'.mkSectionOption {
       description = "The systemd volume configuration";
     };
   };
