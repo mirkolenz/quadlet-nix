@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.1.3](https://github.com/mirkolenz/quadlet-nix/compare/v1.1.2...v1.1.3) (2025-02-23)
+
+### Bug Fixes
+
+* only restart containers ([02fc405](https://github.com/mirkolenz/quadlet-nix/commit/02fc405e520fd01df9734a91c1b94a941fd781db))
+
 ## [1.1.2](https://github.com/mirkolenz/quadlet-nix/compare/v1.1.1...v1.1.2) (2025-02-16)
 
 ### Bug Fixes
