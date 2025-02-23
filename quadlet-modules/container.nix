@@ -51,7 +51,11 @@
         })
       ];
       unitConfig.Description = "Podman container ${config.name}";
-      serviceConfig.ExecStartPre = [ (lib.getExe prestart) ];
+      serviceConfig = {
+        Restart = "always";
+        TimeoutStartSec = lib.mkDefault 900;
+        ExecStartPre = [ (lib.getExe prestart) ];
+      };
 
       finalConfig.Container = config.containerConfig;
     };

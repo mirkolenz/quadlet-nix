@@ -102,10 +102,6 @@
     };
   };
   config = {
-    serviceConfig = {
-      Restart = "always";
-      TimeoutStartSec = lib.mkDefault 900;
-    };
     finalConfig = {
       Unit = config.unitConfig;
       Install = config.installConfig;
