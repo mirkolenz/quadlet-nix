@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.1.4](https://github.com/mirkolenz/quadlet-nix/compare/v1.1.3...v1.1.4) (2025-02-23)
+
+### Bug Fixes
+
+* restart kubes and pods as well ([22604dc](https://github.com/mirkolenz/quadlet-nix/commit/22604dc8f1d3c810942280030cc6bba107f60d78))
+
 ## [1.1.3](https://github.com/mirkolenz/quadlet-nix/compare/v1.1.2...v1.1.3) (2025-02-23)
 
 ### Bug Fixes
