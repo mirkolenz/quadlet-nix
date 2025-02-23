@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.1.5](https://github.com/mirkolenz/quadlet-nix/compare/v1.1.4...v1.1.5) (2025-02-23)
+
+### Bug Fixes
+
+* **network:** delete on stop ([8cd9b2e](https://github.com/mirkolenz/quadlet-nix/commit/8cd9b2ee7fd37443b22968f4d39174a6f8ee5ba9))
+
 ## [1.1.4](https://github.com/mirkolenz/quadlet-nix/compare/v1.1.3...v1.1.4) (2025-02-23)
 
 ### Bug Fixes
