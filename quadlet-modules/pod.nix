@@ -1,6 +1,7 @@
 {
   lib',
   config,
+  lib,
   ...
 }:
 {
@@ -14,6 +15,10 @@
     serviceName = "${config.name}-pod";
     podmanName = config.podConfig.PodName or "systemd-${config.name}";
     unitConfig.Description = "Podman pod ${config.name}";
+    serviceConfig = {
+      Restart = "always";
+      TimeoutStartSec = lib.mkDefault 900;
+    };
 
     finalConfig.Pod = config.podConfig;
   };
