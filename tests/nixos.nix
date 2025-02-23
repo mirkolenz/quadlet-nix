@@ -16,6 +16,14 @@
       users.groups.quadlet = {
         gid = 990;
       };
+      specialisation.one.configuration = {
+        virtualisation.quadlet.containers.nginx-specialized = {
+          containerConfig = {
+            Image = "docker-archive:${pkgs.dockerTools.examples.nginx}";
+            PublishPort = [ "8085:80" ];
+          };
+        };
+      };
       virtualisation.quadlet = {
         containers = {
           nginx = {
@@ -31,9 +39,6 @@
             imageStream = pkgs.dockerTools.examples.nginxStream;
             containerConfig = {
               PublishPort = [ "8081:80" ];
-              Environment = {
-                TZ = "Europe/Berlin";
-              };
             };
           };
           nginx-rootless = {
@@ -41,9 +46,6 @@
             containerConfig = {
               Image = "docker-archive:${pkgs.dockerTools.examples.nginx}";
               PublishPort = [ "8082:80" ];
-              Environment = {
-                TZ = "Europe/Berlin";
-              };
             };
           };
         };
@@ -82,5 +84,15 @@
       containers = json.loads(machine.succeed("sudo -u ${user.name} -- podman ps --format json"))
       assert len(containers) == 1, f"Expected 1 user container, got: {len(containers)}"
       assert 'nginx' in machine.succeed("curl http://127.0.0.1:8082").lower()
+
+      machine.succeed("${nodes.machine.system.build.toplevel}/specialisation/one/bin/switch-to-configuration test")
+      assert 'nginx' in machine.succeed("curl http://127.0.0.1:8085").lower()
+      containers = json.loads(machine.succeed("podman ps --format json"))
+      assert len(containers) == 3, f"Expected 3 system containers, got: {len(containers)}"
+
+      machine.succeed("${nodes.machine.system.build.toplevel}/bin/switch-to-configuration test")
+      machine.fail("curl http://127.0.0.1:8083")
+      containers = json.loads(machine.succeed("podman ps --format json"))
+      assert len(containers) == 2, f"Expected 2 system containers, got: {len(containers)}"
     '';
 }

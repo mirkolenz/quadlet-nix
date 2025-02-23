@@ -44,8 +44,6 @@ let
     obj:
     lib.nameValuePair obj.serviceName {
       overrideStrategy = "asDropin";
-      # Inject X-RestartIfChanged=${hash} for NixOS to detect changes.
-      unitConfig.X-QuadletNixHash = builtins.hashString "sha256" obj.text;
       inherit (obj)
         aliases
         wantedBy
@@ -54,28 +52,31 @@ let
         ;
     };
 
-  mkQuadletName =
-    obj:
-    if obj.uid == null then "containers/systemd/${obj.ref}" else "containers/systemd/users/${obj.ref}";
-
-  mkSystemdName =
-    obj:
-    if obj.uid == null then
-      "etc/systemd/system/${obj.serviceName}.service"
-    else
-      "etc/systemd/user/${obj.serviceName}.service";
-
-  mkSystemdPath =
-    obj:
-    if obj.uid == null then
-      "/run/systemd/generator/${obj.serviceName}.service"
-    else
-      "/run/user/${toString obj.uid}/systemd/generator/${obj.serviceName}.service";
+  mkQuadletUnits =
+    type: objects:
+    pkgs.runCommand "quadlet-package-${type}"
+      {
+        QUADLET_UNIT_DIRS = pkgs.symlinkJoin {
+          name = "quadlet-directory-${type}";
+          paths = map (obj: pkgs.writeTextDir obj.ref obj.text) objects;
+        };
+      }
+      ''
+        mkdir -p $out/lib/systemd/${type}/
+        ${podman}/lib/systemd/${type}-generators/podman-${type}-generator $out/lib/systemd/${type}/
+      '';
 in
 {
   imports = [ ./common.nix ];
   options = {
     virtualisation.quadlet = {
+      generatedUnits = lib.mkOption {
+        type = types.package;
+        internal = true;
+        description = ''
+          A package with generated systemd unit files that will be added to `systemd.packages`.
+        '';
+      };
       containers = lib.mkOption {
         type = types.attrsOf (mkSubmodule ../quadlet-modules/container.nix);
         default = { };
@@ -117,24 +118,16 @@ in
   config = lib.mkIf (cfg.enable && lib.length cfg.allObjects > 0) {
     virtualisation.podman.enable = true;
 
-    environment.etc = lib.listToAttrs (
-      map (
-        obj:
-        lib.nameValuePair (mkQuadletName obj) {
-          inherit (obj) text;
-        }
-      ) cfg.allObjects
-    );
-    # The symlinks are not necessary for the services to be honored by systemd,
-    # but necessary for NixOS activation process to pick them up for updates.
-    systemd.packages = lib.singleton (
-      pkgs.linkFarm "quadlet-nix" (
-        map (obj: {
-          name = mkSystemdName obj;
-          path = mkSystemdPath obj;
-        }) cfg.allObjects
-      )
-    );
+    virtualisation.quadlet.generatedUnits = pkgs.symlinkJoin {
+      name = "quadlet-generated-units";
+      paths = [
+        (mkQuadletUnits "system" rootfulObjects)
+        (mkQuadletUnits "user" rootlessObjects)
+      ];
+    };
+
+    systemd.packages = [ cfg.generatedUnits ];
+
     systemd.services = lib.mkMerge [
       (lib.listToAttrs (map mkServiceOverride rootfulObjects))
       {
@@ -143,6 +136,7 @@ in
         );
       }
     ];
+
     systemd.user.services = lib.mkMerge [
       (lib.listToAttrs (map mkServiceOverride rootlessObjects))
       {
