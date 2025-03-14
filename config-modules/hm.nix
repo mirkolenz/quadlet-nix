@@ -107,10 +107,12 @@ in
         }
       ) cfg.allObjects)
       {
-        # solves `Unable to locate executable 'sh': No such file or directory`
         "systemd/user/podman-user-wait-network-online.service.d/override.conf" = {
           text = lib'.mkUnitText {
-            Service.ExecSearchPath = [ "/bin" ];
+            Service.ExecSearchPath = [
+              "/bin"
+              "${lib.getBin pkgs.coreutils}/bin"
+            ];
             Install.WantedBy = [ "default.target" ];
           };
         };

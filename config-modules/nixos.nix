@@ -143,10 +143,12 @@ in
         quadlet-auto-update = lib.mkIf (cfg.autoUpdate.enable && lib.length rootlessObjects > 0) (
           mkAutoUpdate rootlessUsers
         );
-        # solves `Unable to locate executable 'sh': No such file or directory`
         podman-user-wait-network-online = lib.mkIf (lib.length rootlessObjects > 0) {
           overrideStrategy = "asDropin";
-          serviceConfig.ExecSearchPath = [ "/bin" ];
+          serviceConfig.ExecSearchPath = [
+            "/bin"
+            "${lib.getBin pkgs.coreutils}/bin"
+          ];
         };
       }
     ];
