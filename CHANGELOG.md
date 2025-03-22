@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.2.0](https://github.com/mirkolenz/quadlet-nix/compare/v1.1.5...v1.2.0) (2025-03-22)
+
+### Features
+
+* run podman systemd generator in nix derivation ([74119de](https://github.com/mirkolenz/quadlet-nix/commit/74119de6142120b25664ad7f5af6ccd0f4c1f373))
+
+### Bug Fixes
+
+* add coreutils to search path of service podman-user-wait-network-online ([255c179](https://github.com/mirkolenz/quadlet-nix/commit/255c179832a65b5659266f9ea514bd67868ec68e))
+
 ## [1.1.5](https://github.com/mirkolenz/quadlet-nix/compare/v1.1.4...v1.1.5) (2025-02-23)
 
 ### Bug Fixes
