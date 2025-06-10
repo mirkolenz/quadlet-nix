@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.2.1](https://github.com/mirkolenz/quadlet-nix/compare/v1.2.0...v1.2.1) (2025-06-10)
+
+### Bug Fixes
+
+* **network:** adapt to new deletion option in podman v5.5 ([0edbc5a](https://github.com/mirkolenz/quadlet-nix/commit/0edbc5a0d7b6ca7566661c64923b6ee714ae7eab))
+
 ## [1.2.0](https://github.com/mirkolenz/quadlet-nix/compare/v1.1.5...v1.2.0) (2025-03-22)
 
 ### Features
