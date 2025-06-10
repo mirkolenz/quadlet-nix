@@ -16,8 +16,11 @@
     serviceName = "${config.name}-network";
     podmanName = config.networkConfig.NetworkName or "systemd-${config.name}";
     unitConfig.Description = "Podman network ${config.name}";
-    serviceConfig = {
-      ExecStop = "${lib.getExe podman} network rm ${config.podmanName}";
+    serviceConfig = lib.mkIf (lib.versionOlder podman.version "5.5") {
+      ExecStopPost = "${lib.getExe podman} network rm ${config.podmanName}";
+    };
+    networkConfig = lib.mkIf (lib.versionAtLeast podman.version "5.5") {
+      NetworkDeleteOnStop = true;
     };
 
     finalConfig.Network = config.networkConfig;

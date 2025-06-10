@@ -18,7 +18,7 @@
     TimeoutStartSec = 900;
     TimeoutStopSec = 10;
   };
-  unitConfig.ConditionUser = lib.mkIf (conditionUsers != null && lib.length conditionUsers > 0) (
-    lib.concatMapStringsSep "|" toString conditionUsers
-  );
+  unitConfig = lib.mkIf (conditionUsers != null && lib.length conditionUsers > 0) {
+    ConditionUser = lib.concatMapStringsSep "|" toString conditionUsers;
+  };
 }
