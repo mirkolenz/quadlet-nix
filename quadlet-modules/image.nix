@@ -15,6 +15,6 @@
     podmanName = "systemd-${config.name}";
     unitConfig.Description = "Podman image ${config.name}";
 
-    finalConfig.Volume = config.imageConfig;
+    finalConfig.Image = config.imageConfig;
   };
 }
