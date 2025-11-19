@@ -82,6 +82,11 @@ in
         default = { };
         description = "The images to manage";
       };
+      artifacts = lib.mkOption {
+        type = types.attrsOf (mkSubmodule ../quadlet-modules/artifact.nix);
+        default = { };
+        description = "The artifacts to manage";
+      };
     };
   };
 
