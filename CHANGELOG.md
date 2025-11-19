@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.3.0](https://github.com/mirkolenz/quadlet-nix/compare/v1.2.1...v1.3.0) (2025-11-19)
+
+### Features
+
+* **quadlet:** add support for artifact units ([20784ef](https://github.com/mirkolenz/quadlet-nix/commit/20784efe1f31577a9632bcf9d484d0affea0187d))
+
+### Bug Fixes
+
+* **image:** correctly set image options in quadlet file ([d22dfac](https://github.com/mirkolenz/quadlet-nix/commit/d22dfac63f09181f647294008b21d7f7e9afefc9))
+* **quadlet:** add ServiceName override to artifacts and pods ([bf707fb](https://github.com/mirkolenz/quadlet-nix/commit/bf707fb8c26c98f5ec55462603f1507b5498f701))
+
 ## [1.2.1](https://github.com/mirkolenz/quadlet-nix/compare/v1.2.0...v1.2.1) (2025-06-10)
 
 ### Bug Fixes
