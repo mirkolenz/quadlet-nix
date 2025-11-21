@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.3.1](https://github.com/mirkolenz/quadlet-nix/compare/v1.3.0...v1.3.1) (2025-11-21)
+
+### Bug Fixes
+
+* **container:** correctly disabled AutoUpdate ([8d28a73](https://github.com/mirkolenz/quadlet-nix/commit/8d28a732aa1f36855fd873669aa331346eb347bd))
+
 ## [1.3.0](https://github.com/mirkolenz/quadlet-nix/compare/v1.2.1...v1.3.0) (2025-11-19)
 
 ### Features
