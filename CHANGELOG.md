@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.3.2](https://github.com/mirkolenz/quadlet-nix/compare/v1.3.1...v1.3.2) (2025-11-21)
+
+### Bug Fixes
+
+* **update:** remove all unused images not just dangling ones ([79e1372](https://github.com/mirkolenz/quadlet-nix/commit/79e137276f5d526e6896c87fc6e69e65d0bcb850))
+
 ## [1.3.1](https://github.com/mirkolenz/quadlet-nix/compare/v1.3.0...v1.3.1) (2025-11-21)
 
 ### Bug Fixes
