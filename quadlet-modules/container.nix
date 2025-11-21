@@ -43,11 +43,11 @@
       containerConfig = lib.mkMerge [
         (lib.mkIf (config.imageFile != null) {
           Image = "localhost/${config.imageFile.imageName}:${config.imageFile.imageTag}";
-          AutoUpdate = null;
+          AutoUpdate = "disabled";
         })
         (lib.mkIf (config.imageStream != null) {
           Image = "localhost/${config.imageStream.imageName}:${config.imageStream.imageTag}";
-          AutoUpdate = null;
+          AutoUpdate = "disabled";
         })
       ];
       unitConfig.Description = "Podman container ${config.name}";
