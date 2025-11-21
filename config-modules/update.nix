@@ -11,7 +11,7 @@
   inherit startAt;
   script = ''
     ${lib.getExe podman} auto-update
-    ${lib.getExe podman} image prune -f
+    ${lib.getExe podman} image prune --all --force
   '';
   serviceConfig = {
     Type = "oneshot";
