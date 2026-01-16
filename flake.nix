@@ -17,11 +17,16 @@
           "aarch64-linux"
         ];
         imports = [
-          ./tests
+          flake-parts.flakeModules.partitions
           ./config-modules
           ./docs
         ];
         flake.lib = import ./lib.nix lib;
+        partitionedAttrs.checks = "tests";
+        partitions.tests = {
+          extraInputsFlake = ./tests;
+          module = ./tests;
+        };
       }
     );
 }
