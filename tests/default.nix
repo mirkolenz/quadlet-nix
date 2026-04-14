@@ -10,6 +10,7 @@ let
     {
       imports = [ self.nixosModules.quadlet ];
       environment.systemPackages = with pkgs; [ curl ];
+      virtualisation.podman.enable = true;
       virtualisation.quadlet.enable = true;
       virtualisation = {
         graphics = false;

@@ -24,17 +24,6 @@ let
         inherit (pkgs) writeShellApplication;
       };
     };
-
-  mkServiceOverride =
-    obj:
-    lib.nameValuePair obj.serviceName {
-      Install = {
-        Alias = obj.aliases;
-        WantedBy = obj.wantedBy;
-        RequiredBy = obj.requiredBy;
-        UpheldBy = obj.upheldBy;
-      };
-    };
 in
 {
   imports = [ ./common.nix ];
@@ -44,7 +33,7 @@ in
         type = types.package;
         internal = true;
         description = ''
-          A package with generated systemd unit files that will be added to `systemd.packages`.
+          A package containing the systemd unit files produced by the podman user generator.
         '';
       };
       containers = lib.mkOption {
@@ -105,18 +94,32 @@ in
         '';
 
     xdg.configFile = lib.mkMerge [
-      (lib.mapAttrs' (
-        _: obj:
-        lib.nameValuePair "systemd/user/${obj.serviceName}.service" {
-          source = "${config.virtualisation.quadlet.generatedUnits}/lib/systemd/user/${obj.serviceName}.service";
-        }
-      ) cfg.allObjects)
+      (lib.listToAttrs (
+        lib.concatMap (
+          obj:
+          let
+            service = "${obj.serviceName}.service";
+            source = "${cfg.generatedUnits}/lib/systemd/user/${service}";
+            mkEntry = path: lib.nameValuePair "systemd/user/${path}" { inherit source; };
+            depsByDir = {
+              wants = obj.wantedBy;
+              requires = obj.requiredBy;
+              upholds = obj.upheldBy;
+            };
+            depPaths = lib.concatLists (
+              lib.mapAttrsToList (dir: map (target: "${target}.${dir}/${service}")) depsByDir
+            );
+          in
+          map mkEntry ([ service ] ++ obj.aliases ++ depPaths)
+        ) cfg.allObjects
+      ))
       {
         "systemd/user/podman-user-wait-network-online.service.d/override.conf" = {
           text = lib'.mkUnitText {
             Service.ExecSearchPath = [
               "/bin"
               "${lib.getBin pkgs.coreutils}/bin"
+              "${lib.getBin pkgs.systemd}/bin"
             ];
             Install.WantedBy = [ "default.target" ];
           };
@@ -124,30 +127,23 @@ in
       }
     ];
 
-    systemd.user.services = lib.mkMerge [
-      (lib.listToAttrs (map mkServiceOverride cfg.allObjects))
-      {
-        quadlet-auto-update =
-          let
-            defs = import ./update.nix {
-              inherit lib podman;
-              inherit (cfg.autoUpdate) startAt;
-            };
-          in
-          lib.mkIf cfg.autoUpdate.enable {
-            Service = defs.serviceConfig // {
-              ExecStart = defs.script;
-            };
-            Unit = defs.unitConfig // {
-              Description = defs.description;
-            };
-            Install = {
-              Wants = defs.wants;
-              After = defs.after;
-            };
-          };
-      }
-    ];
+    systemd.user.services.quadlet-auto-update =
+      let
+        defs = import ./update.nix {
+          inherit lib podman;
+          inherit (cfg.autoUpdate) startAt;
+        };
+      in
+      lib.mkIf cfg.autoUpdate.enable {
+        Service = defs.serviceConfig // {
+          ExecStart = defs.script;
+        };
+        Unit = defs.unitConfig // {
+          Description = defs.description;
+          Wants = defs.wants;
+          After = defs.after;
+        };
+      };
 
     systemd.user.timers.quadlet-auto-update = lib.mkIf cfg.autoUpdate.enable {
       Unit = {
