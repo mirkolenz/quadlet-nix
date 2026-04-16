@@ -85,24 +85,10 @@ let
     }
   ) rootlessObjectsByUid;
 
-  systemctl = lib.getExe' pkgs.systemd "systemctl";
-  loginctl = lib.getExe' pkgs.systemd "loginctl";
-  userBus = uid: "--machine=${uid}@.host --user";
-  userStateGuard = uid: ''
-    state=$(${loginctl} show-user ${uid} --property=State --value 2>/dev/null || true)
-    case "$state" in
-      active|online|lingering) ;;
-      *)
-        echo "quadlet-user-reload: user ${uid} not ready (state=''${state:-unknown}); skipping" >&2
-        exit 0
-        ;;
-    esac
-  '';
-
-  mkUserSweeper =
-    uid: _objects:
+  mkUserReloader =
+    uid:
     lib.nameValuePair "quadlet-user-reload-${uid}" {
-      description = "Sweep rootless quadlet state for user ${uid}";
+      description = "Restart user manager for uid ${uid} to apply quadlet changes";
       wantedBy = [ "multi-user.target" ];
       after = [ "user@${uid}.service" ];
       restartTriggers = [ rootlessUnitsByUid.${uid} ];
@@ -111,70 +97,18 @@ let
         RemainAfterExit = true;
       };
       script = ''
-        ${userStateGuard uid}
-        ${systemctl} ${userBus uid} daemon-reload
-        stale=()
-        while read -r unit _; do stale+=("$unit"); done < <(
-          ${systemctl} ${userBus uid} list-units --type=service --state=not-found --no-legend --plain
-        )
-        if (( ''${#stale[@]} > 0 )); then
-          ${systemctl} ${userBus uid} stop "''${stale[@]}" || \
-            echo "quadlet-user-reload: failed to stop one or more stale units" >&2
-          ${systemctl} ${userBus uid} reset-failed "''${stale[@]}" || true
-        fi
-      '';
-    };
+        set -euo pipefail
 
-  mkUserUnitReloader =
-    obj:
-    let
-      uid = toString obj.uid;
-      service = "${obj.serviceName}.service";
-    in
-    lib.nameValuePair "quadlet-user-reload-${uid}-${obj.serviceName}" {
-      description = "Reload rootless quadlet unit ${service} for user ${uid}";
-      wantedBy = [ "multi-user.target" ];
-      after = [
-        "user@${uid}.service"
-        "quadlet-user-reload-${uid}.service"
-      ];
-      restartTriggers = [
-        obj.text
-        podman
-      ];
-      serviceConfig = {
-        Type = "oneshot";
-        RemainAfterExit = true;
-      };
-      script = ''
-        ${userStateGuard uid}
-        active=$(${systemctl} ${userBus uid} show --property=ActiveState --value ${service} 2>/dev/null || true)
-        case "$active" in
-          activating|deactivating)
-            echo "quadlet-user-reload: skipping ${service} (state=$active)" >&2
-            exit 0
-            ;;
-        esac
-        ${systemctl} ${userBus uid} reset-failed ${service} || true
-        ${systemctl} ${userBus uid} reload-or-restart ${service} || \
-          echo "quadlet-user-reload: reload-or-restart ${service} failed" >&2
+        ${lib.getExe' pkgs.systemd "systemctl"} try-restart "user@${uid}.service"
       '';
     };
 
   rootfulOverrides = lib.listToAttrs (map mkServiceOverride rootfulObjects);
   rootlessOverrides = lib.listToAttrs (map mkServiceOverride rootlessObjects);
 
-  userReloadServices = lib.mkMerge [
-    (lib.mapAttrs' mkUserSweeper rootlessObjectsByUid)
-    (lib.listToAttrs (
-      map mkUserUnitReloader (lib.filter (obj: obj.autoStart) rootlessObjects)
-    ))
-  ];
+  userReloadServices = lib.listToAttrs (map mkUserReloader (lib.attrNames rootlessObjectsByUid));
 
-  rootfulAutoUpdate = lib.mkIf (cfg.autoUpdate.enable && rootfulObjects != [ ]) (
-    mkAutoUpdate null
-  );
-
+  rootfulAutoUpdate = lib.mkIf (cfg.autoUpdate.enable && rootfulObjects != [ ]) (mkAutoUpdate null);
   rootlessAutoUpdate = lib.mkIf (cfg.autoUpdate.enable && rootlessObjects != [ ]) (
     mkAutoUpdate (lib.attrNames rootlessObjectsByUid)
   );
@@ -196,6 +130,21 @@ in
         internal = true;
         description = ''
           A package with generated systemd unit files that will be added to `systemd.packages`.
+        '';
+      };
+      reloadUserServices = lib.mkOption {
+        type = types.bool;
+        default = true;
+        description = ''
+          Whether to emit a per-UID reloader service that restarts the
+          `user@UID.service` manager whenever any rootless quadlet unit
+          file changes, mimicking a logout/login. The user manager then
+          comes back up with the new unit files and reactivates its
+          autostart units.
+
+          Without this, `nixos-rebuild switch` updates unit files on disk
+          but the running `systemd --user` instance keeps the old containers
+          going until manually restarted.
         '';
       };
       containers = lib.mkOption {
