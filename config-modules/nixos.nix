@@ -55,7 +55,7 @@ let
   mkQuadletUnits =
     {
       type,
-      nameSuffix ? type,
+      nameSuffix,
       objects,
     }:
     pkgs.runCommand "quadlet-package-${nameSuffix}"
@@ -72,6 +72,7 @@ let
 
   rootfulUnits = mkQuadletUnits {
     type = "system";
+    nameSuffix = "system";
     objects = rootfulObjects;
   };
 
@@ -159,6 +160,32 @@ let
           echo "quadlet-user-reload: reload-or-restart ${service} failed" >&2
       '';
     };
+
+  rootfulOverrides = lib.listToAttrs (map mkServiceOverride rootfulObjects);
+  rootlessOverrides = lib.listToAttrs (map mkServiceOverride rootlessObjects);
+
+  userReloadServices = lib.mkMerge [
+    (lib.mapAttrs' mkUserSweeper rootlessObjectsByUid)
+    (lib.listToAttrs (
+      map mkUserUnitReloader (lib.filter (obj: obj.autoStart) rootlessObjects)
+    ))
+  ];
+
+  rootfulAutoUpdate = lib.mkIf (cfg.autoUpdate.enable && rootfulObjects != [ ]) (
+    mkAutoUpdate null
+  );
+
+  rootlessAutoUpdate = lib.mkIf (cfg.autoUpdate.enable && rootlessObjects != [ ]) (
+    mkAutoUpdate (lib.attrNames rootlessObjectsByUid)
+  );
+
+  podmanWaitOverride = lib.mkIf (rootlessObjects != [ ]) {
+    overrideStrategy = "asDropin";
+    serviceConfig.ExecSearchPath = [
+      "/bin"
+      "${lib.getBin pkgs.coreutils}/bin"
+    ];
+  };
 in
 {
   imports = [ ./common.nix ];
@@ -214,7 +241,7 @@ in
     };
   };
 
-  config = lib.mkIf (cfg.enable && lib.length cfg.allObjects > 0) {
+  config = lib.mkIf (cfg.enable && cfg.allObjects != [ ]) {
     virtualisation.podman.enable = true;
 
     virtualisation.quadlet.generatedUnits = pkgs.symlinkJoin {
@@ -225,33 +252,16 @@ in
     systemd.packages = [ cfg.generatedUnits ];
 
     systemd.services = lib.mkMerge [
-      (lib.listToAttrs (map mkServiceOverride rootfulObjects))
-      (lib.mkIf cfg.reloadUserServices (
-        lib.mkMerge [
-          (lib.mapAttrs' mkUserSweeper rootlessObjectsByUid)
-          (lib.listToAttrs (map mkUserUnitReloader (lib.filter (obj: obj.autoStart) rootlessObjects)))
-        ]
-      ))
-      {
-        quadlet-auto-update = lib.mkIf (cfg.autoUpdate.enable && lib.length rootfulObjects > 0) (
-          mkAutoUpdate null
-        );
-      }
+      rootfulOverrides
+      (lib.mkIf cfg.reloadUserServices userReloadServices)
+      { quadlet-auto-update = rootfulAutoUpdate; }
     ];
 
     systemd.user.services = lib.mkMerge [
-      (lib.listToAttrs (map mkServiceOverride rootlessObjects))
+      rootlessOverrides
       {
-        quadlet-auto-update = lib.mkIf (cfg.autoUpdate.enable && lib.length rootlessObjects > 0) (
-          mkAutoUpdate (lib.attrNames rootlessObjectsByUid)
-        );
-        podman-user-wait-network-online = lib.mkIf (lib.length rootlessObjects > 0) {
-          overrideStrategy = "asDropin";
-          serviceConfig.ExecSearchPath = [
-            "/bin"
-            "${lib.getBin pkgs.coreutils}/bin"
-          ];
-        };
+        quadlet-auto-update = rootlessAutoUpdate;
+        podman-user-wait-network-online = podmanWaitOverride;
       }
     ];
   };

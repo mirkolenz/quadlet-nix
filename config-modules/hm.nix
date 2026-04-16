@@ -24,6 +24,71 @@ let
         inherit (pkgs) writeShellApplication;
       };
     };
+
+  generatedUnits = pkgs.runCommand "quadlet-generated-units"
+    {
+      QUADLET_UNIT_DIRS = pkgs.symlinkJoin {
+        name = "quadlet-directory";
+        paths = map (obj: pkgs.writeTextDir obj.ref obj.text) cfg.allObjects;
+      };
+    }
+    ''
+      mkdir -p $out/lib/systemd/user/
+      ${lib.getLib podman}/lib/systemd/user-generators/podman-user-generator $out/lib/systemd/user/
+    '';
+
+  mkObjectConfigEntries =
+    obj:
+    let
+      service = "${obj.serviceName}.service";
+      source = "${cfg.generatedUnits}/lib/systemd/user/${service}";
+      mkEntry = path: lib.nameValuePair "systemd/user/${path}" { inherit source; };
+      depsByDir = {
+        wants = obj.wantedBy;
+        requires = obj.requiredBy;
+        upholds = obj.upheldBy;
+      };
+      depPaths = lib.concatLists (
+        lib.mapAttrsToList (dir: map (target: "${target}.${dir}/${service}")) depsByDir
+      );
+    in
+    map mkEntry ([ service ] ++ obj.aliases ++ depPaths);
+
+  podmanWaitOverride = {
+    text = lib'.mkUnitText {
+      Service.ExecSearchPath = [
+        "/bin"
+        "${lib.getBin pkgs.coreutils}/bin"
+        "${lib.getBin pkgs.systemd}/bin"
+      ];
+      Install.WantedBy = [ "default.target" ];
+    };
+  };
+
+  autoUpdate = import ./update.nix {
+    inherit lib podman;
+    inherit (cfg.autoUpdate) startAt;
+  };
+
+  autoUpdateService = lib.mkIf cfg.autoUpdate.enable {
+    Service = autoUpdate.serviceConfig // {
+      ExecStart = autoUpdate.script;
+    };
+    Unit = autoUpdate.unitConfig // {
+      Description = autoUpdate.description;
+      Wants = autoUpdate.wants;
+      After = autoUpdate.after;
+    };
+  };
+
+  autoUpdateTimer = lib.mkIf cfg.autoUpdate.enable {
+    Unit.Description = "Quadlet auto-update timer";
+    Timer = {
+      OnCalendar = cfg.autoUpdate.startAt;
+      Persistent = true;
+    };
+    Install.WantedBy = [ "timers.target" ];
+  };
 in
 {
   imports = [ ./common.nix ];
@@ -79,81 +144,17 @@ in
     };
   };
 
-  config = lib.mkIf (cfg.enable && lib.length cfg.allObjects > 0) {
-    virtualisation.quadlet.generatedUnits =
-      pkgs.runCommand "quadlet-generated-units"
-        {
-          QUADLET_UNIT_DIRS = pkgs.symlinkJoin {
-            name = "quadlet-directory";
-            paths = map (obj: pkgs.writeTextDir obj.ref obj.text) cfg.allObjects;
-          };
-        }
-        ''
-          mkdir -p $out/lib/systemd/user/
-          ${lib.getLib podman}/lib/systemd/user-generators/podman-user-generator $out/lib/systemd/user/
-        '';
+  config = lib.mkIf (cfg.enable && cfg.allObjects != [ ]) {
+    virtualisation.quadlet.generatedUnits = generatedUnits;
 
     xdg.configFile = lib.mkMerge [
-      (lib.listToAttrs (
-        lib.concatMap (
-          obj:
-          let
-            service = "${obj.serviceName}.service";
-            source = "${cfg.generatedUnits}/lib/systemd/user/${service}";
-            mkEntry = path: lib.nameValuePair "systemd/user/${path}" { inherit source; };
-            depsByDir = {
-              wants = obj.wantedBy;
-              requires = obj.requiredBy;
-              upholds = obj.upheldBy;
-            };
-            depPaths = lib.concatLists (
-              lib.mapAttrsToList (dir: map (target: "${target}.${dir}/${service}")) depsByDir
-            );
-          in
-          map mkEntry ([ service ] ++ obj.aliases ++ depPaths)
-        ) cfg.allObjects
-      ))
+      (lib.listToAttrs (lib.concatMap mkObjectConfigEntries cfg.allObjects))
       {
-        "systemd/user/podman-user-wait-network-online.service.d/override.conf" = {
-          text = lib'.mkUnitText {
-            Service.ExecSearchPath = [
-              "/bin"
-              "${lib.getBin pkgs.coreutils}/bin"
-              "${lib.getBin pkgs.systemd}/bin"
-            ];
-            Install.WantedBy = [ "default.target" ];
-          };
-        };
+        "systemd/user/podman-user-wait-network-online.service.d/override.conf" = podmanWaitOverride;
       }
     ];
 
-    systemd.user.services.quadlet-auto-update =
-      let
-        defs = import ./update.nix {
-          inherit lib podman;
-          inherit (cfg.autoUpdate) startAt;
-        };
-      in
-      lib.mkIf cfg.autoUpdate.enable {
-        Service = defs.serviceConfig // {
-          ExecStart = defs.script;
-        };
-        Unit = defs.unitConfig // {
-          Description = defs.description;
-          Wants = defs.wants;
-          After = defs.after;
-        };
-      };
-
-    systemd.user.timers.quadlet-auto-update = lib.mkIf cfg.autoUpdate.enable {
-      Unit = {
-        Description = "Quadlet auto-update timer";
-      };
-      Timer = {
-        OnCalendar = cfg.autoUpdate.startAt;
-        Persistent = true;
-      };
-      Install.WantedBy = [ "timers.target" ];
-    };
+    systemd.user.services.quadlet-auto-update = autoUpdateService;
+    systemd.user.timers.quadlet-auto-update = autoUpdateTimer;
   };
 }

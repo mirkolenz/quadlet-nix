@@ -48,7 +48,7 @@ in
       };
     };
   };
-  config = lib.mkIf (cfg.enable && lib.length cfg.allObjects > 0) {
+  config = lib.mkIf (cfg.enable && cfg.allObjects != [ ]) {
     assertions =
       [
         {
