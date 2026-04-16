@@ -1,8 +1,19 @@
 { ... }:
 {
   nodes.machine =
-    { pkgs, ... }:
+    { pkgs, lib, ... }:
     {
+      systemd.services.hm-wait-network-online = {
+        description = "Pull in network-online.target for rootless Home Manager podman tests";
+        wantedBy = [ "multi-user.target" ];
+        wants = [ "network-online.target" ];
+        after = [ "network-online.target" ];
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = lib.getExe' pkgs.coreutils "true";
+          RemainAfterExit = true;
+        };
+      };
       users.users.quadlet = {
         isSystemUser = true;
         uid = 990;
@@ -49,6 +60,7 @@
       import json
 
       machine.wait_for_unit("multi-user.target")
+      machine.wait_for_unit("podman-user-wait-network-online.service", "${user.name}")
 
       machine.wait_for_unit("${containers.nginx.serviceName}.service", "${user.name}")
       assert 'nginx' in machine.succeed("curl http://127.0.0.1:8080").lower()
