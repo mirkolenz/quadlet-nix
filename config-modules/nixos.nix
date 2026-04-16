@@ -118,6 +118,7 @@ let
     serviceConfig.ExecSearchPath = [
       "/bin"
       "${lib.getBin pkgs.coreutils}/bin"
+      "${lib.getBin pkgs.systemd}/bin"
     ];
   };
 in
