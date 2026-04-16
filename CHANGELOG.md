@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.4.0](https://github.com/mirkolenz/quadlet-nix/compare/v1.3.2...v1.4.0) (2026-04-16)
+
+### Features
+
+* **nixos:** allow reloading of user services ([62443da](https://github.com/mirkolenz/quadlet-nix/commit/62443da7b9a8317dbb95131dc6dd22cdc6b2ef54))
+
+### Bug Fixes
+
+* **hm:** fully replace homeManagerModules with homeModules ([b105365](https://github.com/mirkolenz/quadlet-nix/commit/b10536539dfe40e41f43d9afe1e925629a898fd9))
+* **hm:** make module work based on tests ([7cbf569](https://github.com/mirkolenz/quadlet-nix/commit/7cbf569d81ac53d8a2db102daa38e5c425d96995))
+
 ## [1.3.2](https://github.com/mirkolenz/quadlet-nix/compare/v1.3.1...v1.3.2) (2025-11-21)
 
 ### Bug Fixes
