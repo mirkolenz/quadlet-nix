@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.4.2](https://github.com/mirkolenz/quadlet-nix/compare/v1.4.1...v1.4.2) (2026-04-16)
+
+### Bug Fixes
+
+* **nixos:** improve reloading of user units ([a539bf1](https://github.com/mirkolenz/quadlet-nix/commit/a539bf1e0820f0d70d5e2fb91b515f4e486232c1))
+
 ## [1.4.1](https://github.com/mirkolenz/quadlet-nix/compare/v1.4.0...v1.4.1) (2026-04-16)
 
 ### Bug Fixes
