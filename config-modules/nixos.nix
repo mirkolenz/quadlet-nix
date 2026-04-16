@@ -113,9 +113,20 @@ let
             ;;
         esac
         ${systemctl} ${userBus} daemon-reload
+        stale=()
+        while read -r unit _; do stale+=("$unit"); done < <(
+          ${systemctl} ${userBus} list-units --type=service --state=not-found --no-legend --plain
+        )
+        if (( ''${#stale[@]} > 0 )); then
+          ${systemctl} ${userBus} stop "''${stale[@]}" || \
+            echo "quadlet-user-reload: failed to stop one or more stale units" >&2
+          ${systemctl} ${userBus} reset-failed "''${stale[@]}" || true
+        fi
         ${lib.optionalString (autoStartServices != [ ]) ''
-          ${systemctl} ${userBus} try-restart ${lib.escapeShellArgs autoStartServices} || \
-            echo "quadlet-user-reload: one or more try-restart calls failed" >&2
+          ${systemctl} ${userBus} reset-failed ${lib.escapeShellArgs autoStartServices} || \
+            echo "quadlet-user-reload: reset-failed call failed" >&2
+          ${systemctl} ${userBus} reload-or-restart ${lib.escapeShellArgs autoStartServices} || \
+            echo "quadlet-user-reload: one or more reload-or-restart calls failed" >&2
         ''}
       '';
     };
