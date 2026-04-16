@@ -21,6 +21,7 @@
       packages = {
         book = pkgs.callPackage ./book.nix { inherit optionPackages; };
         docs = config.packages.book;
-      } // (lib.listToAttrs optionPackages);
+      }
+      // (lib.listToAttrs optionPackages);
     };
 }

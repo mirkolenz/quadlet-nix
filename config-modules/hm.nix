@@ -25,17 +25,18 @@ let
       };
     };
 
-  generatedUnits = pkgs.runCommand "quadlet-generated-units"
-    {
-      QUADLET_UNIT_DIRS = pkgs.symlinkJoin {
-        name = "quadlet-directory";
-        paths = map (obj: pkgs.writeTextDir obj.ref obj.text) cfg.allObjects;
-      };
-    }
-    ''
-      mkdir -p $out/lib/systemd/user/
-      ${lib.getLib podman}/lib/systemd/user-generators/podman-user-generator $out/lib/systemd/user/
-    '';
+  generatedUnits =
+    pkgs.runCommand "quadlet-generated-units"
+      {
+        QUADLET_UNIT_DIRS = pkgs.symlinkJoin {
+          name = "quadlet-directory";
+          paths = map (obj: pkgs.writeTextDir obj.ref obj.text) cfg.allObjects;
+        };
+      }
+      ''
+        mkdir -p $out/lib/systemd/user/
+        ${lib.getLib podman}/lib/systemd/user-generators/podman-user-generator $out/lib/systemd/user/
+      '';
 
   mkObjectConfigEntries =
     obj:
