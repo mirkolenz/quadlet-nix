@@ -4,6 +4,12 @@ let
   cfg = config.virtualisation.quadlet;
 
   duplicateNames = lib.intersectLists (lib.attrNames cfg.containers) (lib.attrNames cfg.pods);
+  duplicateServiceNames = lib.pipe cfg.allObjects [
+    (map (obj: obj.serviceName))
+    (lib.groupBy lib.id)
+    (lib.filterAttrs (_: names: lib.length names > 1))
+    lib.attrNames
+  ];
   concatObjects = lib.concatMap lib.attrValues [
     cfg.artifacts
     cfg.builds
@@ -42,6 +48,13 @@ in
           The container/pod names should be unique!
           See: https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html#podname
           The following names are not unique: ${lib.concatStringsSep " " duplicateNames}
+        '';
+      }
+      {
+        assertion = duplicateServiceNames == [ ];
+        message = ''
+          Generated quadlet service names should be unique.
+          The following service names are not unique: ${lib.concatStringsSep " " duplicateServiceNames}
         '';
       }
     ]
