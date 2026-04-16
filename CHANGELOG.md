@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.4.3](https://github.com/mirkolenz/quadlet-nix/compare/v1.4.2...v1.4.3) (2026-04-16)
+
+### Bug Fixes
+
+* **common:** add artifacts to quadlet objects ([31150f1](https://github.com/mirkolenz/quadlet-nix/commit/31150f140ad1d4f43555f4b5ae1234e98b042180))
+* **common:** catch duplicate service names ([f380260](https://github.com/mirkolenz/quadlet-nix/commit/f3802603dafca64f4d55e0bf162106d6bd437e55))
+* **nixos:** reload the entire user service for consistent behavior ([fc76daf](https://github.com/mirkolenz/quadlet-nix/commit/fc76daff82282c22d2eaca08e48c898bd2a13e3b))
+* **update:** correctly construct ConditionUser ([12189fb](https://github.com/mirkolenz/quadlet-nix/commit/12189fb23dacbfa9213c5500c1107e8c696271d3))
+
 ## [1.4.2](https://github.com/mirkolenz/quadlet-nix/compare/v1.4.1...v1.4.2) (2026-04-16)
 
 ### Bug Fixes
