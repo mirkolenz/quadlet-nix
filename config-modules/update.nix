@@ -18,7 +18,8 @@
     TimeoutStartSec = 900;
     TimeoutStopSec = 10;
   };
-  unitConfig = lib.mkIf (conditionUsers != null && lib.length conditionUsers > 0) {
-    ConditionUser = lib.concatMapStringsSep "|" toString conditionUsers;
+  unitConfig = lib.mkIf (conditionUsers != null && conditionUsers != [ ]) {
+    # Repeated triggering conditions implement OR semantics across users.
+    ConditionUser = map (user: "|${toString user}") conditionUsers;
   };
 }
