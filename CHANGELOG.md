@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.4.1](https://github.com/mirkolenz/quadlet-nix/compare/v1.4.0...v1.4.1) (2026-04-16)
+
+### Bug Fixes
+
+* **docs:** update config ([4cefa37](https://github.com/mirkolenz/quadlet-nix/commit/4cefa3734f7776424889754f55bc78e508cc820f))
+
 ## [1.4.0](https://github.com/mirkolenz/quadlet-nix/compare/v1.3.2...v1.4.0) (2026-04-16)
 
 ### Features
