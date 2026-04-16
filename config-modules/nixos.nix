@@ -27,7 +27,7 @@ let
 
   rootfulObjects = lib.filter (obj: obj.uid == null) cfg.allObjects;
   rootlessObjects = lib.filter (obj: obj.uid != null) cfg.allObjects;
-  rootlessUsers = lib.unique (map (obj: obj.uid) rootlessObjects);
+  rootlessObjectsByUid = lib.groupBy (obj: toString obj.uid) rootlessObjects;
 
   mkAutoUpdate =
     conditionUsers:
@@ -53,11 +53,15 @@ let
     };
 
   mkQuadletUnits =
-    type: objects:
-    pkgs.runCommand "quadlet-package-${type}"
+    {
+      type,
+      nameSuffix ? type,
+      objects,
+    }:
+    pkgs.runCommand "quadlet-package-${nameSuffix}"
       {
         QUADLET_UNIT_DIRS = pkgs.symlinkJoin {
-          name = "quadlet-directory-${type}";
+          name = "quadlet-directory-${nameSuffix}";
           paths = map (obj: pkgs.writeTextDir obj.ref obj.text) objects;
         };
       }
@@ -65,6 +69,56 @@ let
         mkdir -p $out/lib/systemd/${type}/
         ${podman}/lib/systemd/${type}-generators/podman-${type}-generator $out/lib/systemd/${type}/
       '';
+
+  rootfulUnits = mkQuadletUnits {
+    type = "system";
+    objects = rootfulObjects;
+  };
+
+  rootlessUnitsByUid = lib.mapAttrs (
+    uid: objects:
+    mkQuadletUnits {
+      type = "user";
+      nameSuffix = "user-${uid}";
+      inherit objects;
+    }
+  ) rootlessObjectsByUid;
+
+  mkUserReloader =
+    uid: objects:
+    let
+      systemctl = lib.getExe' pkgs.systemd "systemctl";
+      loginctl = lib.getExe' pkgs.systemd "loginctl";
+      userBus = "--machine=${uid}@.host --user";
+      autoStartServices = map (obj: "${obj.serviceName}.service") (
+        lib.filter (obj: obj.autoStart) objects
+      );
+    in
+    lib.nameValuePair "quadlet-user-reload-${uid}" {
+      description = "Reload rootless quadlet units for user ${uid}";
+      wantedBy = [ "multi-user.target" ];
+      after = [ "user@${uid}.service" ];
+      restartTriggers = [ rootlessUnitsByUid.${uid} ];
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+      };
+      script = ''
+        state=$(${loginctl} show-user ${uid} --property=State --value 2>/dev/null || true)
+        case "$state" in
+          active|online|lingering) ;;
+          *)
+            echo "quadlet-user-reload: user ${uid} not ready (state=''${state:-unknown}); skipping" >&2
+            exit 0
+            ;;
+        esac
+        ${systemctl} ${userBus} daemon-reload
+        ${lib.optionalString (autoStartServices != [ ]) ''
+          ${systemctl} ${userBus} try-restart ${lib.escapeShellArgs autoStartServices} || \
+            echo "quadlet-user-reload: one or more try-restart calls failed" >&2
+        ''}
+      '';
+    };
 in
 {
   imports = [ ./common.nix ];
@@ -125,16 +179,14 @@ in
 
     virtualisation.quadlet.generatedUnits = pkgs.symlinkJoin {
       name = "quadlet-generated-units";
-      paths = [
-        (mkQuadletUnits "system" rootfulObjects)
-        (mkQuadletUnits "user" rootlessObjects)
-      ];
+      paths = [ rootfulUnits ] ++ lib.attrValues rootlessUnitsByUid;
     };
 
     systemd.packages = [ cfg.generatedUnits ];
 
     systemd.services = lib.mkMerge [
       (lib.listToAttrs (map mkServiceOverride rootfulObjects))
+      (lib.mkIf cfg.reloadUserServices (lib.mapAttrs' mkUserReloader rootlessObjectsByUid))
       {
         quadlet-auto-update = lib.mkIf (cfg.autoUpdate.enable && lib.length rootfulObjects > 0) (
           mkAutoUpdate null
@@ -146,7 +198,7 @@ in
       (lib.listToAttrs (map mkServiceOverride rootlessObjects))
       {
         quadlet-auto-update = lib.mkIf (cfg.autoUpdate.enable && lib.length rootlessObjects > 0) (
-          mkAutoUpdate rootlessUsers
+          mkAutoUpdate (lib.attrNames rootlessObjectsByUid)
         );
         podman-user-wait-network-online = lib.mkIf (lib.length rootlessObjects > 0) {
           overrideStrategy = "asDropin";

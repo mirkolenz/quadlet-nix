@@ -18,6 +18,19 @@ in
   options = {
     virtualisation.quadlet = {
       enable = lib.mkEnableOption "quadlet";
+      reloadUserServices = lib.mkOption {
+        type = types.bool;
+        default = true;
+        description = ''
+          Whether to emit a per-UID system-level reloader service that runs
+          `daemon-reload` and `try-restart` on the user's systemd manager when
+          the generated rootless quadlet units change.
+
+          Without this, `nixos-rebuild switch` updates unit files on disk but
+          the running `systemd --user` instance keeps the old containers going
+          until manually restarted.
+        '';
+      };
       autoUpdate = {
         enable = lib.mkEnableOption "quadlet auto update";
         startAt = lib.mkOption {
