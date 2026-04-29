@@ -5,6 +5,11 @@ lib: rec {
   mkValueString = lib.generators.mkValueStringDefault { };
   mkKeyValue = lib.generators.mkKeyValueDefault { inherit mkValueString; } "=";
 
+  # Quote the whole "K=V" payload (systemd C-style) so Environment=, ...
+  # round-trip values with whitespace or special characters.
+  # Mirrors nixpkgs/nixos/lib/systemd-lib.nix Environment= rendering.
+  mkQuotedEntry = k: v: lib.toJSON "${k}=${mkValueString v}";
+
   entryType = lib.mkOptionType {
     name = "systemd option";
     merge =
@@ -14,7 +19,8 @@ lib: rec {
       in
       if lib.any (def: lib.isList def.value || lib.isAttrs def.value) defs' then
         lib.concatMap (
-          def: if lib.isAttrs def.value then lib.mapAttrsToList mkKeyValue def.value else lib.toList def.value
+          def:
+          if lib.isAttrs def.value then lib.mapAttrsToList mkQuotedEntry def.value else lib.toList def.value
         ) defs'
       else
         lib.mergeEqualOption loc defs';
