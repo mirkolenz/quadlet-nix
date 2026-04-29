@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.4.4](https://github.com/mirkolenz/quadlet-nix/compare/v1.4.3...v1.4.4) (2026-04-29)
+
+### Bug Fixes
+
+* **lib:** properly quote attrset values for systemd ([2a00350](https://github.com/mirkolenz/quadlet-nix/commit/2a0035071286d48e766cb0b57c45bda95d010864))
+
 ## [1.4.3](https://github.com/mirkolenz/quadlet-nix/compare/v1.4.2...v1.4.3) (2026-04-16)
 
 ### Bug Fixes
