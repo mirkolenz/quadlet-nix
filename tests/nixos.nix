@@ -106,7 +106,6 @@
       machine.fail(reload_env_check)
       machine.succeed("${nodes.machine.system.build.toplevel}/specialisation/userReload/bin/switch-to-configuration test")
       machine.wait_for_unit("default.target", "${user.name}")
-      machine.succeed("systemctl is-active quadlet-user-reload-${toString user.uid}.service")
       machine.wait_until_succeeds(reload_env_check)
     '';
 }

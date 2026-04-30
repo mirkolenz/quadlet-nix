@@ -27,7 +27,6 @@ let
 
   rootfulObjects = lib.filter (obj: obj.uid == null) cfg.allObjects;
   rootlessObjects = lib.filter (obj: obj.uid != null) cfg.allObjects;
-  rootlessObjectsByUid = lib.groupBy (obj: toString obj.uid) rootlessObjects;
 
   mkAutoUpdate =
     conditionUsers:
@@ -55,13 +54,12 @@ let
   mkQuadletUnits =
     {
       type,
-      nameSuffix,
       objects,
     }:
-    pkgs.runCommand "quadlet-package-${nameSuffix}"
+    pkgs.runCommand "quadlet-package-${type}"
       {
         QUADLET_UNIT_DIRS = pkgs.symlinkJoin {
-          name = "quadlet-directory-${nameSuffix}";
+          name = "quadlet-directory-${type}";
           paths = map (obj: pkgs.writeTextDir obj.ref obj.text) objects;
         };
       }
@@ -72,45 +70,20 @@ let
 
   rootfulUnits = mkQuadletUnits {
     type = "system";
-    nameSuffix = "system";
     objects = rootfulObjects;
   };
 
-  rootlessUnitsByUid = lib.mapAttrs (
-    uid: objects:
-    mkQuadletUnits {
-      type = "user";
-      nameSuffix = "user-${uid}";
-      inherit objects;
-    }
-  ) rootlessObjectsByUid;
-
-  mkUserReloader =
-    uid:
-    lib.nameValuePair "quadlet-user-reload-${uid}" {
-      description = "Restart user manager for uid ${uid} to apply quadlet changes";
-      wantedBy = [ "multi-user.target" ];
-      after = [ "user@${uid}.service" ];
-      restartTriggers = [ rootlessUnitsByUid.${uid} ];
-      serviceConfig = {
-        Type = "oneshot";
-        RemainAfterExit = true;
-      };
-      script = ''
-        set -euo pipefail
-
-        ${lib.getExe' pkgs.systemd "systemctl"} try-restart "user@${uid}.service"
-      '';
-    };
+  rootlessUnits = mkQuadletUnits {
+    type = "user";
+    objects = rootlessObjects;
+  };
 
   rootfulOverrides = lib.listToAttrs (map mkServiceOverride rootfulObjects);
   rootlessOverrides = lib.listToAttrs (map mkServiceOverride rootlessObjects);
 
-  userReloadServices = lib.listToAttrs (map mkUserReloader (lib.attrNames rootlessObjectsByUid));
-
   rootfulAutoUpdate = lib.mkIf (cfg.autoUpdate.enable && rootfulObjects != [ ]) (mkAutoUpdate null);
   rootlessAutoUpdate = lib.mkIf (cfg.autoUpdate.enable && rootlessObjects != [ ]) (
-    mkAutoUpdate (lib.attrNames rootlessObjectsByUid)
+    mkAutoUpdate (lib.unique (map (obj: toString obj.uid) rootlessObjects))
   );
 
   podmanWaitOverride = lib.mkIf (rootlessObjects != [ ]) {
@@ -131,21 +104,6 @@ in
         internal = true;
         description = ''
           A package with generated systemd unit files that will be added to `systemd.packages`.
-        '';
-      };
-      reloadUserServices = lib.mkOption {
-        type = types.bool;
-        default = true;
-        description = ''
-          Whether to emit a per-UID reloader service that restarts the
-          `user@UID.service` manager whenever any rootless quadlet unit
-          file changes, mimicking a logout/login. The user manager then
-          comes back up with the new unit files and reactivates its
-          autostart units.
-
-          Without this, `nixos-rebuild switch` updates unit files on disk
-          but the running `systemd --user` instance keeps the old containers
-          going until manually restarted.
         '';
       };
       containers = lib.mkOption {
@@ -196,14 +154,16 @@ in
 
     virtualisation.quadlet.generatedUnits = pkgs.symlinkJoin {
       name = "quadlet-generated-units";
-      paths = [ rootfulUnits ] ++ lib.attrValues rootlessUnitsByUid;
+      paths = [
+        rootfulUnits
+        rootlessUnits
+      ];
     };
 
     systemd.packages = [ cfg.generatedUnits ];
 
     systemd.services = lib.mkMerge [
       rootfulOverrides
-      (lib.mkIf cfg.reloadUserServices userReloadServices)
       { quadlet-auto-update = rootfulAutoUpdate; }
     ];
 
