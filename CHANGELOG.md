@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.4.5](https://github.com/mirkolenz/quadlet-nix/compare/v1.4.4...v1.4.5) (2026-04-30)
+
+### Bug Fixes
+
+* **nixos:** remove user service reload workaround after upstream changes ([b4d107d](https://github.com/mirkolenz/quadlet-nix/commit/b4d107d9e4b308a1a24cb7ba3132050665805fef))
+
 ## [1.4.4](https://github.com/mirkolenz/quadlet-nix/compare/v1.4.3...v1.4.4) (2026-04-29)
 
 ### Bug Fixes
