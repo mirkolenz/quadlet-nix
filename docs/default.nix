@@ -1,27 +1,70 @@
 { lib, ... }:
 {
   perSystem =
-    { pkgs, config, ... }:
+    { pkgs, ... }:
     let
-      mkOptions = pkgs.callPackage ./options.nix { };
-      optionPackages = [
+      evalModule =
+        module:
+        (lib.evalModules {
+          modules = [
+            module
+            {
+              _module.args = { inherit pkgs; };
+              _module.check = false;
+            }
+          ];
+        }).options;
+      mkOptions =
+        options:
+        (pkgs.nixosOptionsDoc {
+          inherit options;
+          # hide /nix/store/* prefix
+          transformOptions = opt: opt // { declarations = [ ]; };
+        }).optionsCommonMark;
+      subpages = [
+        "containers"
+        "networks"
+        "pods"
+        "kubes"
+        "volumes"
+        "builds"
+        "images"
+        "artifacts"
+      ];
+      mkSection =
+        { prefix, title, module }:
+        let
+          options = evalModule module;
+        in
         {
-          name = "nixos-options";
-          title = "NixOS Options";
-          value = mkOptions ../config-modules/nixos.nix;
-        }
-        {
-          name = "home-manager-options";
-          title = "Home Manager Options";
-          value = mkOptions ../config-modules/hm.nix;
-        }
+          inherit prefix title;
+          pages = [
+            {
+              name = "core";
+              title = "Core";
+              value = mkOptions (lib.removeAttrs options.virtualisation.quadlet subpages);
+            }
+          ]
+          ++ map (subpage: {
+            name = subpage;
+            title = lib.toSentenceCase subpage;
+            value = mkOptions options.virtualisation.quadlet.${subpage};
+          }) subpages;
+        };
+      sections = [
+        (mkSection {
+          prefix = "nixos";
+          title = "NixOS";
+          module = ../config-modules/nixos.nix;
+        })
+        (mkSection {
+          prefix = "home-manager";
+          title = "Home Manager";
+          module = ../config-modules/hm.nix;
+        })
       ];
     in
     {
-      packages = {
-        book = pkgs.callPackage ./book.nix { inherit optionPackages; };
-        docs = config.packages.book;
-      }
-      // (lib.listToAttrs optionPackages);
+      packages.docs = pkgs.callPackage ./book.nix { inherit sections; };
     };
 }

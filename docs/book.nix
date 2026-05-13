@@ -4,7 +4,7 @@
   mdbook,
   writeShellApplication,
   python3,
-  optionPackages,
+  sections,
 }:
 stdenvNoCC.mkDerivation (finalAttrs: {
   name = "book";
@@ -21,11 +21,16 @@ stdenvNoCC.mkDerivation (finalAttrs: {
 
     ln -s ${../README.md} src/README.md
 
-    ${lib.concatMapStringsSep "\n" (option: ''
-      echo "[${option.title}](${option.name}.md)" >> src/SUMMARY.md
+    ${lib.concatMapStringsSep "\n" (section: ''
       echo "" >> src/SUMMARY.md
-      ln -s ${option.value} src/${option.name}.md
-    '') optionPackages}
+      echo "# ${section.title}" >> src/SUMMARY.md
+      echo "" >> src/SUMMARY.md
+      mkdir -p src/${section.prefix}
+      ${lib.concatMapStringsSep "\n" (page: ''
+        echo "- [${page.title}](${section.prefix}/${page.name}.md)" >> src/SUMMARY.md
+        ln -s ${page.value} src/${section.prefix}/${page.name}.md
+      '') section.pages}
+    '') sections}
 
     mdbook build
 
