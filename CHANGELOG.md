@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.4.6](https://github.com/mirkolenz/quadlet-nix/compare/v1.4.5...v1.4.6) (2026-05-21)
+
+### Bug Fixes
+
+* **lib:** use lib.strings.toJSON for compatibility with nixos-25.11 ([8bb16bb](https://github.com/mirkolenz/quadlet-nix/commit/8bb16bb9300c261eac2d6820410ac5fa8b06aa7c))
+
 ## [1.4.5](https://github.com/mirkolenz/quadlet-nix/compare/v1.4.4...v1.4.5) (2026-04-30)
 
 ### Bug Fixes
