@@ -8,7 +8,7 @@ lib: rec {
   # Quote the whole "K=V" payload (systemd C-style) so Environment=, ...
   # round-trip values with whitespace or special characters.
   # Mirrors nixpkgs/nixos/lib/systemd-lib.nix Environment= rendering.
-  mkQuotedEntry = k: v: lib.toJSON "${k}=${mkValueString v}";
+  mkQuotedEntry = k: v: lib.strings.toJSON "${k}=${mkValueString v}";
 
   entryType = lib.mkOptionType {
     name = "systemd option";
