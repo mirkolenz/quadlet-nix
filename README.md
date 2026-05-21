@@ -54,3 +54,23 @@ containerConfig.Label = [ (lib.strings.toJSON "description=My web server") ];
 
 All other values are written into the unit file verbatim.
 Whitespace and other special characters are handled by Quadlet itself when it builds the resulting `ExecStart=` line, so no additional quoting is required.
+
+## Comparison to [SEIAROTg/quadlet-nix](https://github.com/SEIAROTg/quadlet-nix)
+
+The two implementations solve the same problem but make different trade-offs.
+
+### Where this version differs
+
+- Unit files are produced inside a Nix derivation by invoking `podman-system-generator` / `podman-user-generator` at build time, rather than relying on the systemd generator at boot.
+  The resulting package is added to `systemd.packages`.
+- Rootless containers are supported directly from the NixOS module by setting a `uid` per object, Home Manager is not required.
+- Quadlet keys are passed through verbatim using their original `PascalCase` names (e.g., `containerConfig.Image`, `containerConfig.PublishPort`).
+  The upstream Podman documentation applies directly and new Quadlet keys work without changes to this module.
+- Container images can be supplied as Nix packages via `imageFile` (e.g., `pkgs.dockerTools.buildImage`) or `imageStream` (e.g., `pkgs.dockerTools.streamLayeredImage`).
+- Releases follow semantic versioning with version tags (e.g., `v1`) for stable pinning and the flake is structured with [flake-parts](https://flake.parts).
+
+### Where the original may suit you better
+
+- Each Quadlet key is exposed as a dedicated, individually typed and documented option (e.g., `containerConfig.publishPorts : listOf str`), giving you per-field type checking and inline help.
+- Per-key typing catches structural mistakes at eval time, e.g., rejecting `Exec = [ "a" "b" ]` since Quadlet only honors the last line.
+- Longer track record and a more elaborate README with recipes and comparisons to other tools.
