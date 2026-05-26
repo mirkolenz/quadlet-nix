@@ -55,6 +55,21 @@ containerConfig.Label = [ (lib.strings.toJSON "description=My web server") ];
 All other values are written into the unit file verbatim.
 Whitespace and other special characters are handled by Quadlet itself when it builds the resulting `ExecStart=` line, so no additional quoting is required.
 
+## Restart and rate-limit defaults
+
+For long-running units (`.container`, `.kube`, `.pod`) the module sets a few `[Service]` / `[Unit]` keys as `lib.mkDefault` to replace systemd defaults that are unsafe for containers.
+
+| Key | Default | Reason |
+|-----|---------|--------|
+| `Restart` | `on-failure` | Systemd's `no` means containers don't auto-restart at all. |
+| `RestartSec` | `5s` | Systemd's `100ms` paired with `Restart=` produces millisecond-scale restart loops. |
+| `TimeoutStartSec` | `900s` | Systemd's `90s` is often too short for image pulls or cold-start workloads. |
+| `StartLimitBurst` / `StartLimitIntervalSec` | `3` / `600s` | Hard-fail after 3 restarts in 10 minutes so a broken unit doesn't loop forever. |
+
+The burst limit only fires when `(TimeoutStartSec + RestartSec) × StartLimitBurst ≤ StartLimitIntervalSec`, which holds for typical fast-starting services.
+A unit that consistently hangs all the way to `TimeoutStartSec` will retry indefinitely because each attempt falls outside the rate-limit window.
+Tighten `TimeoutStartSec` (or widen `StartLimitIntervalSec`) downstream when you want hung-start loops to hard-fail.
+
 ## Comparison to [SEIAROTg/quadlet-nix](https://github.com/SEIAROTg/quadlet-nix)
 
 The two implementations solve the same problem but make different trade-offs.
@@ -68,6 +83,7 @@ The two implementations solve the same problem but make different trade-offs.
   The upstream Podman documentation applies directly and new Quadlet keys work without changes to this module.
 - Container images can be supplied as Nix packages via `imageFile` (e.g., `pkgs.dockerTools.buildImage`) or `imageStream` (e.g., `pkgs.dockerTools.streamLayeredImage`).
 - Releases follow semantic versioning with version tags (e.g., `v1`) for stable pinning and the flake is structured with [flake-parts](https://flake.parts).
+- Long-running units (`.container`, `.kube`, `.pod`) ship with overridable restart and rate-limit settings.
 
 ### Where the original may suit you better
 
