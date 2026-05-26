@@ -16,7 +16,7 @@
     podmanName = config.podConfig.PodName or "systemd-${config.name}";
     unitConfig.Description = "Podman pod ${config.name}";
     serviceConfig = {
-      Restart = "always";
+      Restart = lib.mkDefault "on-failure";
       TimeoutStartSec = lib.mkDefault 900;
     };
 

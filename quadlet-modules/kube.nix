@@ -16,7 +16,7 @@
     podmanName = "systemd-${config.name}";
     unitConfig.Description = "Podman kube ${config.name}";
     serviceConfig = {
-      Restart = "always";
+      Restart = lib.mkDefault "on-failure";
       TimeoutStartSec = lib.mkDefault 900;
     };
 
