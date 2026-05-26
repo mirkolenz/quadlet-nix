@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.4.7](https://github.com/mirkolenz/quadlet-nix/compare/v1.4.6...v1.4.7) (2026-05-26)
+
+### Bug Fixes
+
+* **quadlet:** add default RestartSec ([5a4db12](https://github.com/mirkolenz/quadlet-nix/commit/5a4db12a9b6b8eb839d8a95721ae6169012cc34f))
+* **quadlet:** add default StartLimit ([d953129](https://github.com/mirkolenz/quadlet-nix/commit/d9531298cde0bf083cd9a15ae611d366d5df3dae))
+* **quadlet:** switch Restart default from always to on-failure ([d5dd7ca](https://github.com/mirkolenz/quadlet-nix/commit/d5dd7cab145bf76118481e26037ab341ac089c44))
+
 ## [1.4.6](https://github.com/mirkolenz/quadlet-nix/compare/v1.4.5...v1.4.6) (2026-05-21)
 
 ### Bug Fixes
