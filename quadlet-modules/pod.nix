@@ -17,6 +17,7 @@
     unitConfig.Description = "Podman pod ${config.name}";
     serviceConfig = {
       Restart = lib.mkDefault "on-failure";
+      RestartSec = lib.mkDefault 5;
       TimeoutStartSec = lib.mkDefault 900;
     };
 
