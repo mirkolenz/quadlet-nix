@@ -50,7 +50,11 @@
           AutoUpdate = "disabled";
         })
       ];
-      unitConfig.Description = "Podman container ${config.name}";
+      unitConfig = {
+        Description = "Podman container ${config.name}";
+        StartLimitBurst = lib.mkDefault 3;
+        StartLimitIntervalSec = lib.mkDefault 600;
+      };
       serviceConfig = {
         Restart = lib.mkDefault "on-failure";
         RestartSec = lib.mkDefault 5;
