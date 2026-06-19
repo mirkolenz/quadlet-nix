@@ -1,6 +1,7 @@
 { lib, config, ... }:
 let
   inherit (lib) types;
+  lib' = import ../lib.nix lib;
   cfg = config.virtualisation.quadlet;
 
   duplicateNames = lib.intersectLists (lib.attrNames cfg.containers) (lib.attrNames cfg.pods);
@@ -46,7 +47,7 @@ in
         assertion = duplicateNames == [ ];
         message = ''
           The container/pod names should be unique!
-          See: https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html#podname
+          See: ${lib'.quadletDocsUrl}#podname
           The following names are not unique: ${lib.concatStringsSep " " duplicateNames}
         '';
       }

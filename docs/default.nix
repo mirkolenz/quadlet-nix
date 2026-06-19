@@ -18,8 +18,17 @@
         options:
         (pkgs.nixosOptionsDoc {
           inherit options;
-          # hide /nix/store/* prefix
-          transformOptions = opt: opt // { declarations = [ ]; };
+          transformOptions =
+            opt:
+            let
+              # hide /nix/store/* prefix
+              opt' = opt // {
+                declarations = [ ];
+              };
+            in
+            # drop the uninformative `Default: null` rendered for unset keys,
+            # while keeping any Podman default documented via `defaultText`
+            if (opt'.default.text or null) == "null" then removeAttrs opt' [ "default" ] else opt';
         }).optionsCommonMark;
       subpages = [
         "containers"
@@ -32,7 +41,11 @@
         "artifacts"
       ];
       mkSection =
-        { prefix, title, module }:
+        {
+          prefix,
+          title,
+          module,
+        }:
         let
           options = evalModule module;
         in

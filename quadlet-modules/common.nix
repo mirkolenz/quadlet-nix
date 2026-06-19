@@ -74,8 +74,15 @@
       internal = true; # no longer needed, but kept for compatibility
       description = "The systemd install configuration";
     };
-    quadletConfig = lib'.mkSectionOption {
-      description = "The systemd quadlet configuration";
+    quadletConfig = lib'.mkQuadletSectionOption {
+      anchor = "quadlet-section-quadlet";
+      description = "The systemd quadlet configuration (the `[Quadlet]` section)";
+      options = {
+        DefaultDependencies = lib'.mkQuadletOption {
+          type = lib.types.bool;
+          default = true;
+        };
+      };
     };
 
     # nix-specific options
