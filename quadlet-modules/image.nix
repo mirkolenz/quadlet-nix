@@ -1,6 +1,7 @@
 {
   config,
   lib',
+  lib,
   ...
 }:
 {
@@ -11,7 +12,7 @@
   };
   config = {
     ref = "${config.name}.image";
-    serviceName = "${config.name}-image";
+    serviceName = lib.defaultTo "${config.name}-image" config.imageConfig.ServiceName;
     podmanName = "systemd-${config.name}";
     unitConfig.Description = "Podman image ${config.name}";
 

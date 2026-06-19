@@ -38,8 +38,8 @@
     in
     {
       ref = "${config.name}.container";
-      serviceName = "${config.name}";
-      podmanName = config.containerConfig.ContainerName or "systemd-${config.name}";
+      serviceName = lib.defaultTo "${config.name}" config.containerConfig.ServiceName;
+      podmanName = lib.defaultTo "systemd-${config.name}" config.containerConfig.ContainerName;
       containerConfig = lib.mkMerge [
         (lib.mkIf (config.imageFile != null) {
           Image = "localhost/${config.imageFile.imageName}:${config.imageFile.imageTag}";

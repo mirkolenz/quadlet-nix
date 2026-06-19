@@ -1,6 +1,7 @@
 {
   config,
   lib',
+  lib,
   ...
 }:
 {
@@ -11,8 +12,8 @@
   };
   config = {
     ref = "${config.name}.volume";
-    serviceName = "${config.name}-volume";
-    podmanName = config.volumeConfig.VolumeName or "systemd-${config.name}";
+    serviceName = lib.defaultTo "${config.name}-volume" config.volumeConfig.ServiceName;
+    podmanName = lib.defaultTo "systemd-${config.name}" config.volumeConfig.VolumeName;
     unitConfig.Description = "Podman volume ${config.name}";
 
     finalConfig.Volume = config.volumeConfig;

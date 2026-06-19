@@ -12,7 +12,7 @@
   };
   config = {
     ref = "${config.name}.kube";
-    serviceName = "${config.name}-kube";
+    serviceName = lib.defaultTo "${config.name}" config.kubeConfig.ServiceName;
     podmanName = "systemd-${config.name}";
     unitConfig = {
       Description = "Podman kube ${config.name}";

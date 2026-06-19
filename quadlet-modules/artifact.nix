@@ -1,6 +1,7 @@
 {
   config,
   lib',
+  lib,
   ...
 }:
 {
@@ -11,7 +12,7 @@
   };
   config = {
     ref = "${config.name}.artifact";
-    serviceName = config.artifactConfig.ServiceName or "${config.name}-artifact";
+    serviceName = lib.defaultTo "${config.name}-artifact" config.artifactConfig.ServiceName;
     podmanName = "systemd-${config.name}";
     unitConfig.Description = "Podman artifact ${config.name}";
 

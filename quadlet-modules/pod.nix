@@ -12,8 +12,8 @@
   };
   config = {
     ref = "${config.name}.pod";
-    serviceName = config.podConfig.ServiceName or "${config.name}-pod";
-    podmanName = config.podConfig.PodName or "systemd-${config.name}";
+    serviceName = lib.defaultTo "${config.name}-pod" config.podConfig.ServiceName;
+    podmanName = lib.defaultTo "systemd-${config.name}" config.podConfig.PodName;
     unitConfig = {
       Description = "Podman pod ${config.name}";
       StartLimitBurst = lib.mkDefault 3;
