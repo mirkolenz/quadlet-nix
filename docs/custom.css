@@ -1,0 +1,6 @@
+/* mdbook injects the current page's headings into the sidebar as nested
+   `ol.section` lists. The option pages have one heading per Quadlet key, which
+   floods the sidebar, so keep only the flat per-page list. */
+#mdbook-sidebar ol.section {
+  display: none;
+}

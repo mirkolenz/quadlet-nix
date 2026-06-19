@@ -5,6 +5,7 @@ authors = ["Mirko Lenz"]
 language = "en"
 
 [output.html]
+additional-css = ["custom.css"]
 default-theme = "light"
 git-repository-icon = "fab-github"
 git-repository-url = "https://github.com/mirkolenz/quadlet-nix"

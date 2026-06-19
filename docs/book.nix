@@ -13,6 +13,7 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     root = ./.;
     fileset = lib.fileset.unions [
       ./book.toml
+      ./custom.css
       ./src
     ];
   };
