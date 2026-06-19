@@ -20,6 +20,7 @@
           flake-parts.flakeModules.partitions
           ./config-modules
           ./docs
+          ./checks
         ];
         flake.lib = import ./lib.nix lib;
         partitionedAttrs.checks = "tests";
