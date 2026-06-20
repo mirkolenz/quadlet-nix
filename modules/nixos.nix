@@ -64,8 +64,11 @@ let
         };
       }
       ''
-        mkdir -p $out/lib/systemd/${type}/
-        ${podman}/lib/systemd/${type}-generators/podman-${type}-generator $out/lib/systemd/${type}/
+        outDir=$out/lib/systemd/${type}
+        mkdir -p "$outDir"
+        ${podman}/lib/systemd/${type}-generators/podman-${type}-generator "$outDir"
+
+        ${lib'.mkVerifyUnitsScript objects}
       '';
 
   rootfulUnits = mkQuadletUnits {

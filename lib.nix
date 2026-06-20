@@ -172,4 +172,19 @@ lib: rec {
         default = { };
       }
     );
+
+  # Build-time guard for the unit derivations: the podman generator logs and
+  # skips any unit it cannot convert rather than failing, so assert every
+  # expected service file was emitted and fail the build otherwise (all or
+  # nothing). Expects the builder to have set `$outDir` to the output directory.
+  mkVerifyUnitsScript =
+    objects:
+    ''
+      for service in ${lib.escapeShellArgs (map (obj: "${obj.serviceName}.service") objects)}; do
+        if [ ! -e "$outDir/$service" ]; then
+          echo "quadlet: the podman generator did not emit $service; aborting to avoid installing a half-generated set of units" >&2
+          exit 1
+        fi
+      done
+    '';
 }

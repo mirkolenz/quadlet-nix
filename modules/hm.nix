@@ -34,8 +34,11 @@ let
         };
       }
       ''
-        mkdir -p $out/lib/systemd/user/
-        ${lib.getLib podman}/lib/systemd/user-generators/podman-user-generator $out/lib/systemd/user/
+        outDir=$out/lib/systemd/user
+        mkdir -p "$outDir"
+        ${lib.getLib podman}/lib/systemd/user-generators/podman-user-generator "$outDir"
+
+        ${lib'.mkVerifyUnitsScript cfg.allObjects}
       '';
 
   mkObjectConfigEntries =
