@@ -72,14 +72,14 @@ Tighten `TimeoutStartSec` (or widen `StartLimitIntervalSec`) downstream when you
 
 ## Overriding the generated unit
 
-A declared option is only as permissive as its type, so a key whose value Podman accepts but the typed option rejects cannot be set through that option directly.
-Two escape hatches cover this without waiting for a module update.
+Each `*Config` section passes its keys through verbatim, so any Quadlet key can be set directly under its section using the upstream `PascalCase` name.
+For the rare cases this does not cover, two escape hatches are available.
 
-`extraConfig` is a freeform set of `[Section]` keys merged over the generated unit, so it can add an unmodelled key or override a typed value verbatim:
+`extraConfig` is a freeform set of `[Section]` keys merged over the generated unit and takes precedence, so it can override a value the module sets itself:
 
 ```nix
-# Any [Section], any value, written through untouched:
-extraConfig.Container.PublishPort = "8080:80";
+# Any [Section], any value, written through with the last word:
+extraConfig.Service.TimeoutStartSec = "300";
 ```
 
 `rawConfig` replaces the entire unit file with the given text, bypassing generation completely:
@@ -93,10 +93,24 @@ rawConfig = ''
 
 ## Comparison to [SEIAROTg/quadlet-nix](https://github.com/SEIAROTg/quadlet-nix)
 
-- Unit files are produced inside a Nix derivation by invoking `podman-system-generator` / `podman-user-generator` at build time, rather than relying on the systemd generator at boot. The resulting package is added to `systemd.packages`.
+The two implementations solve the same problem but make different trade-offs.
+The clearest difference is where unit correctness is checked: this version validates at build time, the original at evaluation time.
+
+### Where this version differs
+
+- Unit files are produced inside a Nix derivation by invoking `podman-system-generator` / `podman-user-generator` at build time, rather than relying on the systemd generator at boot.
+  The resulting package is added to `systemd.packages`.
+- Quadlet keys are passed through verbatim using their original `PascalCase` names (e.g., `containerConfig.Image`, `containerConfig.PublishPort`).
+  The upstream Podman documentation applies directly and new Quadlet keys work without changes to this module.
+- Because the generator runs at build time, podman itself validates the units and the build aborts unless every expected unit is emitted.
+  Errors the generator would otherwise log and skip at boot become hard build failures, checked by the same tool that consumes the units instead of by option types that have to be kept in sync with upstream.
 - Rootless containers are supported directly from the NixOS module by setting a `uid` per object, Home Manager is not required.
-- Quadlet keys keep their upstream `PascalCase` names (e.g., `containerConfig.Image`) but are still fully typed to catch errors during evaluation. Brand-new keys still pass through verbatim by the use of freeform submodules.
-- A `quadlet-drift` flake check (`nix run .#quadlet-drift`) diffs the declared options against the pinned `podman` source, so the typed options stay aligned with upstream.
 - Container images can be supplied as Nix packages via `imageFile` (e.g., `pkgs.dockerTools.buildImage`) or `imageStream` (e.g., `pkgs.dockerTools.streamLayeredImage`).
 - Releases follow semantic versioning with version tags (e.g., `v1`) for stable pinning and the flake is structured with [flake-parts](https://flake.parts).
 - Long-running units (`.container`, `.kube`, `.pod`) ship with overridable restart and rate-limit settings.
+
+### Where the original may suit you better
+
+- Each Quadlet key is exposed as a dedicated, individually typed and documented option (e.g., `containerConfig.publishPorts : listOf str`), giving you per-field type checking and inline help.
+- That typing catches structural mistakes earlier, during evaluation rather than at build time, e.g., rejecting `Exec = [ "a" "b" ]` since Quadlet only honors a single value.
+- Longer track record and a more elaborate README with recipes and comparisons to other tools.
