@@ -59,12 +59,12 @@ Whitespace and other special characters are handled by Quadlet itself when it bu
 
 For long-running units (`.container`, `.kube`, `.pod`) the module sets a few `[Service]` / `[Unit]` keys as `lib.mkDefault` to replace systemd defaults that are unsafe for containers.
 
-| Key | Default | Reason |
-|-----|---------|--------|
-| `Restart` | `on-failure` | Systemd's `no` means containers don't auto-restart at all. |
-| `RestartSec` | `5s` | Systemd's `100ms` paired with `Restart=` produces millisecond-scale restart loops. |
-| `TimeoutStartSec` | `900s` | Systemd's `90s` is often too short for image pulls or cold-start workloads. |
-| `StartLimitBurst` / `StartLimitIntervalSec` | `3` / `600s` | Hard-fail after 3 restarts in 10 minutes so a broken unit doesn't loop forever. |
+| Key                                         | Default      | Reason                                                                             |
+| ------------------------------------------- | ------------ | ---------------------------------------------------------------------------------- |
+| `Restart`                                   | `on-failure` | Systemd's `no` means containers don't auto-restart at all.                         |
+| `RestartSec`                                | `5s`         | Systemd's `100ms` paired with `Restart=` produces millisecond-scale restart loops. |
+| `TimeoutStartSec`                           | `900s`       | Systemd's `90s` is often too short for image pulls or cold-start workloads.        |
+| `StartLimitBurst` / `StartLimitIntervalSec` | `3` / `600s` | Hard-fail after 3 restarts in 10 minutes so a broken unit doesn't loop forever.    |
 
 The burst limit only fires when `(TimeoutStartSec + RestartSec) × StartLimitBurst ≤ StartLimitIntervalSec`, which holds for typical fast-starting services.
 A unit that consistently hangs all the way to `TimeoutStartSec` will retry indefinitely because each attempt falls outside the rate-limit window.

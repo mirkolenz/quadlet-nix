@@ -83,9 +83,7 @@ def main() -> int:
             print(f"[{section}] ok ({len(modelled)} keys)")
 
     if drift:
-        print(
-            "\nDrift detected. Update the affected units/*.nix accordingly."
-        )
+        print("\nDrift detected. Update the affected units/*.nix accordingly.")
         return 1
 
     print("\nNo drift: all declared options match the keys Podman accepts.")
