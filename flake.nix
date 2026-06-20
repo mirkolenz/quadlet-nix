@@ -22,7 +22,10 @@
           ./docs
         ];
         flake.lib = import ./lib.nix lib;
-        partitionedAttrs.checks = "dev";
+        partitionedAttrs = {
+          checks = "dev";
+          formatter = "dev";
+        };
         partitions.dev = {
           extraInputsFlake = ./dev;
           module = ./dev;
