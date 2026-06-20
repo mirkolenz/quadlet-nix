@@ -70,6 +70,27 @@ The burst limit only fires when `(TimeoutStartSec + RestartSec) × StartLimitBur
 A unit that consistently hangs all the way to `TimeoutStartSec` will retry indefinitely because each attempt falls outside the rate-limit window.
 Tighten `TimeoutStartSec` (or widen `StartLimitIntervalSec`) downstream when you want hung-start loops to hard-fail.
 
+## Overriding the generated unit
+
+A declared option is only as permissive as its type, so a key whose value Podman accepts but the typed option rejects cannot be set through that option directly.
+Two escape hatches cover this without waiting for a module update.
+
+`extraConfig` is a freeform set of `[Section]` keys merged over the generated unit, so it can add an unmodelled key or override a typed value verbatim:
+
+```nix
+# Any [Section], any value, written through untouched:
+extraConfig.Container.PublishPort = "8080:80";
+```
+
+`rawConfig` replaces the entire unit file with the given text, bypassing generation completely:
+
+```nix
+rawConfig = ''
+  [Container]
+  Image=docker.io/library/hello-world:latest
+'';
+```
+
 ## Comparison to [SEIAROTg/quadlet-nix](https://github.com/SEIAROTg/quadlet-nix)
 
 - Unit files are produced inside a Nix derivation by invoking `podman-system-generator` / `podman-user-generator` at build time, rather than relying on the systemd generator at boot. The resulting package is added to `systemd.packages`.

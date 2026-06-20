@@ -13,7 +13,6 @@ let
     int
     bool
     either
-    enum
     ;
 in
 {
@@ -49,20 +48,11 @@ in
           example = "alternate-profile";
         };
         AutoUpdate = mkQuadletOption {
-          type = enum [
-            "registry"
-            "local"
-            "disabled"
-          ];
+          type = str;
           example = "registry";
         };
         CgroupsMode = mkQuadletOption {
-          type = enum [
-            "enabled"
-            "disabled"
-            "no-conmon"
-            "split"
-          ];
+          type = str;
           flag = "--cgroups";
           default = "split";
           example = "no-conmon";
@@ -167,12 +157,7 @@ in
           default = 500;
         };
         HealthOnFailure = mkQuadletOption {
-          type = enum [
-            "none"
-            "kill"
-            "restart"
-            "stop"
-          ];
+          type = str;
           flag = "--health-on-failure";
           example = "kill";
         };

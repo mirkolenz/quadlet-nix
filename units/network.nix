@@ -7,7 +7,7 @@
 }:
 let
   inherit (lib') mkQuadletOption singleOrList keyValue;
-  inherit (lib.types) str bool enum;
+  inherit (lib.types) str bool;
 in
 {
   options = {
@@ -30,13 +30,10 @@ in
           example = [ "192.168.55.1" ];
         };
         Driver = mkQuadletOption {
-          type = enum [
-            "bridge"
-            "macvlan"
-            "ipvlan"
-          ];
+          type = str;
           flag = "--driver";
           default = "bridge";
+          example = "macvlan";
         };
         Gateway = mkQuadletOption {
           type = singleOrList str;
@@ -58,11 +55,7 @@ in
           default = false;
         };
         IPAMDriver = mkQuadletOption {
-          type = enum [
-            "host-local"
-            "dhcp"
-            "none"
-          ];
+          type = str;
           flag = "--ipam-driver";
           example = "dhcp";
         };

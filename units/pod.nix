@@ -6,7 +6,7 @@
 }:
 let
   inherit (lib') mkQuadletOption singleOrList keyValue;
-  inherit (lib.types) str int enum;
+  inherit (lib.types) str int;
 in
 {
   options = {
@@ -37,11 +37,9 @@ in
           example = [ "example.com" ];
         };
         ExitPolicy = mkQuadletOption {
-          type = enum [
-            "continue"
-            "stop"
-          ];
+          type = str;
           default = "stop";
+          example = "continue";
         };
         GIDMap = mkQuadletOption {
           type = singleOrList str;

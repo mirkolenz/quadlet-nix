@@ -131,7 +131,9 @@ lib: rec {
   # finalizes into an option once it knows the key's name and section anchor.
   # The conveniences mirror `lib.mkOption`:
   #   - `type` is wrapped in `nullOr` and the key defaults to `null` (absent), so
-  #     it is only rendered into the unit file once explicitly set,
+  #     it is only rendered once explicitly set. A declared type is stricter than
+  #     the freeform `sectionType` fallback and cannot be overridden inline, so keep
+  #     it permissive and avoid `enum`, which would reject values added upstream,
   #   - `flag` records the equivalent Podman CLI flag and is folded into the
   #     generated description, which links to the upstream docs instead of copying
   #     prose that quickly goes stale,

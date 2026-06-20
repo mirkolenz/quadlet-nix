@@ -6,7 +6,7 @@
 }:
 let
   inherit (lib') mkQuadletOption singleOrList keyValue;
-  inherit (lib.types) str bool enum;
+  inherit (lib.types) str bool;
 in
 {
   options = {
@@ -28,11 +28,7 @@ in
           example = [ "/etc/nvd.conf" ];
         };
         ExitCodePropagation = mkQuadletOption {
-          type = enum [
-            "all"
-            "any"
-            "none"
-          ];
+          type = str;
           default = "none";
           example = "all";
         };
@@ -74,10 +70,7 @@ in
           example = "name";
         };
         SetWorkingDirectory = mkQuadletOption {
-          type = enum [
-            "yaml"
-            "unit"
-          ];
+          type = str;
           example = "yaml";
         };
         UserNS = mkQuadletOption {
