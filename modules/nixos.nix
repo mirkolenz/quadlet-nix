@@ -56,6 +56,9 @@ let
       type,
       objects,
     }:
+    let
+      outDir = "$out/lib/systemd/${type}";
+    in
     pkgs.runCommand "quadlet-package-${type}"
       {
         QUADLET_UNIT_DIRS = pkgs.symlinkJoin {
@@ -64,11 +67,12 @@ let
         };
       }
       ''
-        outDir=$out/lib/systemd/${type}
-        mkdir -p "$outDir"
-        ${lib.getLib podman}/lib/systemd/${type}-generators/podman-${type}-generator "$outDir"
+        mkdir -p "${outDir}"
+        ${lib.getLib podman}/lib/systemd/${type}-generators/podman-${type}-generator "${outDir}"
 
-        ${lib'.mkVerifyUnitsScript objects}
+        ${lib'.mkValidateUnitsScript {
+          inherit outDir objects;
+        }}
       '';
 
   rootfulUnits = mkQuadletUnits {
