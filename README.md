@@ -72,21 +72,10 @@ Tighten `TimeoutStartSec` (or widen `StartLimitIntervalSec`) downstream when you
 
 ## Comparison to [SEIAROTg/quadlet-nix](https://github.com/SEIAROTg/quadlet-nix)
 
-The two implementations solve the same problem but make different trade-offs.
-
-### Where this version differs
-
-- Unit files are produced inside a Nix derivation by invoking `podman-system-generator` / `podman-user-generator` at build time, rather than relying on the systemd generator at boot.
-  The resulting package is added to `systemd.packages`.
+- Unit files are produced inside a Nix derivation by invoking `podman-system-generator` / `podman-user-generator` at build time, rather than relying on the systemd generator at boot. The resulting package is added to `systemd.packages`.
 - Rootless containers are supported directly from the NixOS module by setting a `uid` per object, Home Manager is not required.
-- Quadlet keys keep their upstream `PascalCase` names (e.g., `containerConfig.Image`, `containerConfig.PublishPort`).
-  Every documented key is exposed as an individually typed and documented option, so structural mistakes are caught at eval time (e.g., `Exec = [ "a" "b" ]` is rejected because Quadlet only honors a single value), and the generated documentation shows each key's type, the equivalent `podman` flag, and an example.
-  Each section is a freeform submodule, so unknown or brand-new keys still pass through verbatim. The upstream Podman documentation applies directly and new Quadlet keys keep working without changes to this module.
+- Quadlet keys keep their upstream `PascalCase` names (e.g., `containerConfig.Image`) but are still fully typed to catch errors during evaluation. Brand-new keys still pass through verbatim by the use of freeform submodules.
+- A `quadlet-drift` flake check (`nix run .#quadlet-drift`) diffs the declared options against the pinned `podman` source, so the typed options stay aligned with upstream.
 - Container images can be supplied as Nix packages via `imageFile` (e.g., `pkgs.dockerTools.buildImage`) or `imageStream` (e.g., `pkgs.dockerTools.streamLayeredImage`).
 - Releases follow semantic versioning with version tags (e.g., `v1`) for stable pinning and the flake is structured with [flake-parts](https://flake.parts).
 - Long-running units (`.container`, `.kube`, `.pod`) ship with overridable restart and rate-limit settings.
-
-### Where the original may suit you better
-
-- Option names are lowercased Nix-native identifiers (e.g., `containerConfig.publishPorts`) rather than the verbatim Quadlet `PascalCase` keys, which some may prefer stylistically.
-- Longer track record and a more elaborate README with recipes and comparisons to other tools.
