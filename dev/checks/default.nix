@@ -7,7 +7,7 @@
       options =
         (lib.evalModules {
           modules = [
-            ../config-modules/nixos.nix
+            ../../modules/nixos.nix
             {
               _module.args.pkgs = pkgs;
               _module.check = false;

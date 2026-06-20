@@ -68,12 +68,12 @@
         (mkSection {
           prefix = "nixos";
           title = "NixOS";
-          module = ../config-modules/nixos.nix;
+          module = ../modules/nixos.nix;
         })
         (mkSection {
           prefix = "home-manager";
           title = "Home Manager";
-          module = ../config-modules/hm.nix;
+          module = ../modules/hm.nix;
         })
       ];
     in

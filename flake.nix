@@ -18,15 +18,14 @@
         ];
         imports = [
           flake-parts.flakeModules.partitions
-          ./config-modules
+          ./modules
           ./docs
-          ./checks
         ];
         flake.lib = import ./lib.nix lib;
-        partitionedAttrs.checks = "tests";
-        partitions.tests = {
-          extraInputsFlake = ./tests;
-          module = ./tests;
+        partitionedAttrs.checks = "dev";
+        partitions.dev = {
+          extraInputsFlake = ./dev;
+          module = ./dev;
         };
       }
     );

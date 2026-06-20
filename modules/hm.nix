@@ -17,7 +17,7 @@ let
     types.submodule {
       imports = [
         path
-        ../quadlet-modules/common.nix
+        ../units/common.nix
       ];
       _module.args = {
         inherit lib' podman;
@@ -103,42 +103,42 @@ in
         '';
       };
       containers = lib.mkOption {
-        type = types.attrsOf (mkSubmodule ../quadlet-modules/container.nix);
+        type = types.attrsOf (mkSubmodule ../units/container.nix);
         default = { };
         description = "The containers to manage";
       };
       networks = lib.mkOption {
-        type = types.attrsOf (mkSubmodule ../quadlet-modules/network.nix);
+        type = types.attrsOf (mkSubmodule ../units/network.nix);
         default = { };
         description = "The networks to manage";
       };
       pods = lib.mkOption {
-        type = types.attrsOf (mkSubmodule ../quadlet-modules/pod.nix);
+        type = types.attrsOf (mkSubmodule ../units/pod.nix);
         default = { };
         description = "The pods to manage";
       };
       kubes = lib.mkOption {
-        type = types.attrsOf (mkSubmodule ../quadlet-modules/kube.nix);
+        type = types.attrsOf (mkSubmodule ../units/kube.nix);
         default = { };
         description = "The kubes to manage";
       };
       volumes = lib.mkOption {
-        type = types.attrsOf (mkSubmodule ../quadlet-modules/volume.nix);
+        type = types.attrsOf (mkSubmodule ../units/volume.nix);
         default = { };
         description = "The volumes to manage";
       };
       builds = lib.mkOption {
-        type = types.attrsOf (mkSubmodule ../quadlet-modules/build.nix);
+        type = types.attrsOf (mkSubmodule ../units/build.nix);
         default = { };
         description = "The builds to manage";
       };
       images = lib.mkOption {
-        type = types.attrsOf (mkSubmodule ../quadlet-modules/image.nix);
+        type = types.attrsOf (mkSubmodule ../units/image.nix);
         default = { };
         description = "The images to manage";
       };
       artifacts = lib.mkOption {
-        type = types.attrsOf (mkSubmodule ../quadlet-modules/artifact.nix);
+        type = types.attrsOf (mkSubmodule ../units/artifact.nix);
         default = { };
         description = "The artifacts to manage";
       };

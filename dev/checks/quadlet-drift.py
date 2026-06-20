@@ -60,7 +60,7 @@ def main() -> int:
     }
     upstream = upstream_keys(Path(QUADLET_GO).read_text())
 
-    print(f"Comparing quadlet-modules against Podman {PODMAN_VERSION}\n")
+    print(f"Comparing unit modules against Podman {PODMAN_VERSION}\n")
 
     drift = False
     for section in sorted(declared):
@@ -84,7 +84,7 @@ def main() -> int:
 
     if drift:
         print(
-            "\nDrift detected. Update the affected quadlet-modules/*.nix accordingly."
+            "\nDrift detected. Update the affected units/*.nix accordingly."
         )
         return 1
 
