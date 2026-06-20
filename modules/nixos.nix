@@ -66,7 +66,7 @@ let
       ''
         outDir=$out/lib/systemd/${type}
         mkdir -p "$outDir"
-        ${podman}/lib/systemd/${type}-generators/podman-${type}-generator "$outDir"
+        ${lib.getLib podman}/lib/systemd/${type}-generators/podman-${type}-generator "$outDir"
 
         ${lib'.mkVerifyUnitsScript objects}
       '';
