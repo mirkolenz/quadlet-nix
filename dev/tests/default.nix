@@ -41,8 +41,43 @@ in
   # advanced checks using virtual machines
   perSystem =
     { pkgs, ... }:
+    let
+      # Assert the generated unit package refuses to build, aborting activation.
+      # `serviceName` is derived from the name, so raw text that renames or
+      # breaks the emitted unit must trip the guard.
+      mkAbortCheck =
+        name: text:
+        let
+          units = self.lib.mkQuadletUnitPackage {
+            inherit pkgs;
+            podman = pkgs.podman;
+            type = "system";
+            objects = lib.singleton {
+              serviceName = "app";
+              ref = "app.container";
+              inherit text;
+            };
+          };
+        in
+        pkgs.runCommand name { failed = pkgs.testers.testBuildFailure units; } ''
+          [[ 1 = $(cat $failed/testBuildFailure.exit) ]]
+          touch $out
+        '';
+    in
     {
       checks = {
+        # `ServiceName=` renames the emitted unit; the unsupported key makes the
+        # generator reject it. Both leave the expected `app.service` missing.
+        validation-partial = mkAbortCheck "quadlet-validation-partial" ''
+          [Container]
+          Image=localhost/test:latest
+          ServiceName=renamed
+        '';
+        validation-invalid = mkAbortCheck "quadlet-validation-invalid" ''
+          [Container]
+          Image=localhost/test:latest
+          ThisKeyDoesNotExist=true
+        '';
         nixos = pkgs.testers.runNixOSTest {
           name = "nixos";
           imports = [ ./nixos.nix ];
