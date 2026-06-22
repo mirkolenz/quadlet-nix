@@ -26,25 +26,13 @@ let
     };
 
   generatedUnits =
-    let
-      outDir = "$out/lib/systemd/user";
-    in
-    pkgs.runCommand "quadlet-generated-units"
-      {
-        QUADLET_UNIT_DIRS = pkgs.symlinkJoin {
-          name = "quadlet-directory";
-          paths = map (obj: pkgs.writeTextDir obj.ref obj.text) cfg.allObjects;
-        };
-      }
-      ''
-        mkdir -p "${outDir}"
-        ${lib.getLib podman}/lib/systemd/user-generators/podman-user-generator "${outDir}"
-
-        ${lib'.mkValidateUnitsScript {
-          inherit outDir;
-          objects = cfg.allObjects;
-        }}
-      '';
+    lib'.mkQuadletUnitPackage {
+      inherit pkgs podman;
+      name = "quadlet-generated-units";
+      directoryName = "quadlet-directory";
+      type = "user";
+      objects = cfg.allObjects;
+    };
 
   mkObjectConfigEntries =
     obj:

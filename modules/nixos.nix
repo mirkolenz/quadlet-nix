@@ -56,24 +56,14 @@ let
       type,
       objects,
     }:
-    let
-      outDir = "$out/lib/systemd/${type}";
-    in
-    pkgs.runCommand "quadlet-package-${type}"
-      {
-        QUADLET_UNIT_DIRS = pkgs.symlinkJoin {
-          name = "quadlet-directory-${type}";
-          paths = map (obj: pkgs.writeTextDir obj.ref obj.text) objects;
-        };
-      }
-      ''
-        mkdir -p "${outDir}"
-        ${lib.getLib podman}/lib/systemd/${type}-generators/podman-${type}-generator "${outDir}"
-
-        ${lib'.mkValidateUnitsScript {
-          inherit outDir objects;
-        }}
-      '';
+    lib'.mkQuadletUnitPackage {
+      inherit
+        pkgs
+        podman
+        type
+        objects
+        ;
+    };
 
   rootfulUnits = mkQuadletUnits {
     type = "system";
@@ -161,10 +151,9 @@ in
 
     virtualisation.quadlet.generatedUnits = pkgs.symlinkJoin {
       name = "quadlet-generated-units";
-      paths = [
-        rootfulUnits
-        rootlessUnits
-      ];
+      paths =
+        lib.optional (rootfulObjects != [ ]) rootfulUnits
+        ++ lib.optional (rootlessObjects != [ ]) rootlessUnits;
     };
 
     systemd.packages = [ cfg.generatedUnits ];

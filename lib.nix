@@ -76,24 +76,37 @@ lib: rec {
       }
     );
 
-  # Build-time guard for the unit derivations: the podman generator logs and
-  # skips any unit it cannot convert rather than failing, so assert every
-  # expected service file was emitted in `outDir` and fail the build otherwise
-  # (all or nothing).
-  mkValidateUnitsScript =
+  # Build time guard. The podman generator logs and skips invalid units, so
+  # assert every expected service file was emitted before installing the package.
+  mkQuadletUnitPackage =
     {
-      outDir,
+      pkgs,
+      podman,
+      type,
       objects,
+      name ? "quadlet-package-${type}",
+      directoryName ? "quadlet-directory-${type}",
     }:
     let
+      outDir = "$out/lib/systemd/${type}";
       services = map (obj: "${obj.serviceName}.service") objects;
     in
-    ''
-      for service in ${lib.escapeShellArgs services}; do
-        if [ ! -e "${outDir}/$service" ]; then
-          echo "quadlet: the podman generator did not emit $service; aborting to avoid installing a half-generated set of units" >&2
-          exit 1
-        fi
-      done
-    '';
+    pkgs.runCommand name
+      {
+        QUADLET_UNIT_DIRS = pkgs.symlinkJoin {
+          name = directoryName;
+          paths = map (obj: pkgs.writeTextDir obj.ref obj.text) objects;
+        };
+      }
+      ''
+        mkdir -p "${outDir}"
+        ${lib.getLib podman}/lib/systemd/${type}-generators/podman-${type}-generator "${outDir}"
+
+        for service in ${lib.escapeShellArgs services}; do
+          if [ ! -e "${outDir}/$service" ]; then
+            echo "quadlet: the podman generator did not emit $service, aborting to avoid installing a partially generated set of units" >&2
+            exit 1
+          fi
+        done
+      '';
 }
