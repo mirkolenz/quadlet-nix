@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.5.0](https://github.com/mirkolenz/quadlet-nix/compare/v1.4.7...v1.5.0) (2026-06-23)
+
+### Features
+
+* add build-time quadlet unit validation ([1a2301d](https://github.com/mirkolenz/quadlet-nix/commit/1a2301de4e0852b7fe9fec83b1e36636b923d44c))
+
+### Bug Fixes
+
+* **quadlet:** align service and podman names with upstream defaults ([dc3fd76](https://github.com/mirkolenz/quadlet-nix/commit/dc3fd7663195498c4cddb327cf382653d4386ae6))
+
 ## [1.4.7](https://github.com/mirkolenz/quadlet-nix/compare/v1.4.6...v1.4.7) (2026-05-26)
 
 ### Bug Fixes
