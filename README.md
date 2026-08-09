@@ -34,8 +34,8 @@ You can get started with the following minimal configuration:
 }
 ```
 
-All available options are described in the [documentation](https://mirkolenz.github.io/quadlet-nix/nixos-options.html).
-You may also want to take a look at the [tests](https://github.com/mirkolenz/quadlet-nix/blob/main/tests/nixos.nix) for more examples.
+All available options are described in the [documentation](https://mirkolenz.github.io/quadlet-nix/index.html).
+You may also want to take a look at the [tests](https://github.com/mirkolenz/quadlet-nix/blob/main/dev/tests/nixos.nix) for more examples.
 
 ## Quoting values
 
