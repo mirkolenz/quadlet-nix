@@ -13,11 +13,12 @@ You can get started with the following minimal configuration:
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
-  outputs = {nixpkgs, flocken, ...}:  {
+  outputs = { nixpkgs, quadlet-nix, ... }: {
     nixosConfigurations.default = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       modules = [
-        ({pkgs, ...}: {
+        quadlet-nix.nixosModules.default
+        ({ pkgs, ... }: {
           virtualisation.quadlet.enable = true;
           virtualisation.quadlet.containers = {
             hello-world = {
