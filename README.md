@@ -17,7 +17,7 @@ You can get started with the following minimal configuration:
     nixosConfigurations.default = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       modules = [
-        quadlet-nix.nixosModules.quadlet
+        quadlet-nix.nixosModules.default
         ({ pkgs, ... }: {
           virtualisation.quadlet.enable = true;
           virtualisation.quadlet.containers = {
