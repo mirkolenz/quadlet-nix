@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.5.1](https://github.com/mirkolenz/quadlet-nix/compare/v1.5.0...v1.5.1) (2026-08-13)
+
+### Bug Fixes
+
+* **quadlet:** scope unit generation to single objects and uids ([e6a1233](https://github.com/mirkolenz/quadlet-nix/commit/e6a123370ddb29c465cea96afcc3d77dfa9aff63))
+
 ## [1.5.0](https://github.com/mirkolenz/quadlet-nix/compare/v1.4.7...v1.5.0) (2026-06-23)
 
 ### Features
