@@ -50,8 +50,9 @@ in
         let
           units = self.lib.mkQuadletUnitPackage {
             inherit pkgs;
-            podman = pkgs.podman;
+            inherit (pkgs) podman;
             type = "system";
+            name = "quadlet-package-system";
             objects = lib.singleton {
               serviceName = "app";
               ref = "app.container";
@@ -63,6 +64,36 @@ in
           [[ 1 = $(cat $failed/testBuildFailure.exit) ]]
           touch $out
         '';
+
+      mkUnits =
+        publishPort:
+        pkgs.symlinkJoin {
+          name = "quadlet-units";
+          paths =
+            (lib.nixosSystem {
+              modules = lib.singleton {
+                imports = [ self.nixosModules.quadlet ];
+                nixpkgs.pkgs = pkgs;
+                system.stateVersion = lib.trivial.release;
+                virtualisation.quadlet = {
+                  enable = true;
+                  networks.shared.uid = 1000;
+                  containers.web = {
+                    uid = 1000;
+                    containerConfig = {
+                      Image = "localhost/web:latest";
+                      Network = "shared.network";
+                      PublishPort = "${publishPort}:80";
+                    };
+                  };
+                  containers.other = {
+                    uid = 1001;
+                    containerConfig.Image = "localhost/other:latest";
+                  };
+                };
+              };
+            }).config.virtualisation.quadlet.generatedUnits;
+        };
     in
     {
       checks = {
@@ -78,6 +109,27 @@ in
           Image=localhost/test:latest
           ThisKeyDoesNotExist=true
         '';
+        generated-units =
+          pkgs.runCommand "quadlet-generated-units"
+            {
+              before = "${mkUnits "8080"}/lib/systemd/user";
+              after = "${mkUnits "8081"}/lib/systemd/user";
+            }
+            ''
+              package() { dirname "$(readlink -f "$after/$1")"; }
+
+              # references resolve within a uid, and every uid has its own package
+              grep -q "^Requires=shared-network.service$" "$after/web.service"
+              [[ "$(package web.service)" = "$(package shared-network.service)" ]]
+              [[ "$(package web.service)" != "$(package other.service)" ]]
+
+              # changing one object leaves the units of all others untouched
+              diff "$before/shared-network.service" "$after/shared-network.service"
+              diff "$before/other.service" "$after/other.service"
+              ! diff "$before/web.service" "$after/web.service" > /dev/null
+
+              touch $out
+            '';
         nixos = pkgs.testers.runNixOSTest {
           name = "nixos";
           imports = [ ./nixos.nix ];

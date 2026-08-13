@@ -28,7 +28,6 @@ let
   generatedUnits = lib'.mkQuadletUnitPackage {
     inherit pkgs podman;
     name = "quadlet-generated-units";
-    directoryName = "quadlet-directory";
     type = "user";
     objects = cfg.allObjects;
   };

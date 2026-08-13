@@ -51,29 +51,20 @@ let
         ;
     };
 
-  mkQuadletUnits =
-    {
-      type,
-      objects,
-    }:
+  # Objects only share a generator run when they share a podman storage and a
+  # systemd manager, so references between units cannot cross that boundary.
+  objectsByScope = lib.groupBy (
+    obj: if obj.uid == null then "system" else "user-${toString obj.uid}"
+  ) cfg.allObjects;
+
+  unitPackages = lib.mapAttrsToList (
+    scope: objects:
     lib'.mkQuadletUnitPackage {
-      inherit
-        pkgs
-        podman
-        type
-        objects
-        ;
-    };
-
-  rootfulUnits = mkQuadletUnits {
-    type = "system";
-    objects = rootfulObjects;
-  };
-
-  rootlessUnits = mkQuadletUnits {
-    type = "user";
-    objects = rootlessObjects;
-  };
+      inherit pkgs podman objects;
+      type = if scope == "system" then "system" else "user";
+      name = "quadlet-package-${scope}";
+    }
+  ) objectsByScope;
 
   rootfulOverrides = lib.listToAttrs (map mkServiceOverride rootfulObjects);
   rootlessOverrides = lib.listToAttrs (map mkServiceOverride rootlessObjects);
@@ -97,10 +88,10 @@ in
   options = {
     virtualisation.quadlet = {
       generatedUnits = lib.mkOption {
-        type = types.package;
+        type = types.listOf types.package;
         internal = true;
         description = ''
-          A package with generated systemd unit files that will be added to `systemd.packages`.
+          Packages with generated systemd unit files that will be added to `systemd.packages`.
         '';
       };
       containers = lib.mkOption {
@@ -149,14 +140,9 @@ in
   config = lib.mkIf (cfg.enable && cfg.allObjects != [ ]) {
     virtualisation.podman.enable = true;
 
-    virtualisation.quadlet.generatedUnits = pkgs.symlinkJoin {
-      name = "quadlet-generated-units";
-      paths =
-        lib.optional (rootfulObjects != [ ]) rootfulUnits
-        ++ lib.optional (rootlessObjects != [ ]) rootlessUnits;
-    };
+    virtualisation.quadlet.generatedUnits = unitPackages;
 
-    systemd.packages = [ cfg.generatedUnits ];
+    systemd.packages = cfg.generatedUnits;
 
     systemd.services = lib.mkMerge [
       rootfulOverrides

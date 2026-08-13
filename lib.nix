@@ -84,19 +84,20 @@ lib: rec {
       podman,
       type,
       objects,
-      name ? "quadlet-package-${type}",
-      directoryName ? "quadlet-directory-${type}",
+      name,
     }:
     let
       outDir = "$out/lib/systemd/${type}";
       services = map (obj: "${obj.serviceName}.service") objects;
+      # The generator emits the source directory as `SourcePath=`, so one
+      # directory per object keeps a change to one object out of the units of
+      # all others. A single generator run still resolves references between
+      # units such as `Pod=` or `Network=`.
+      unitDirs = map (obj: pkgs.writeTextDir obj.ref obj.text) objects;
     in
     pkgs.runCommand name
       {
-        QUADLET_UNIT_DIRS = pkgs.symlinkJoin {
-          name = directoryName;
-          paths = map (obj: pkgs.writeTextDir obj.ref obj.text) objects;
-        };
+        QUADLET_UNIT_DIRS = lib.concatStringsSep ":" unitDirs;
       }
       ''
         mkdir -p "${outDir}"
