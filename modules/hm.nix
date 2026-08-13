@@ -25,9 +25,11 @@ let
       };
     };
 
-  generatedUnits = lib'.mkQuadletUnitPackage {
+  # A home-manager configuration always covers a single user, so all objects
+  # share one generator run and references between units always resolve.
+  unitPackage = lib'.mkQuadletUnitPackage {
     inherit pkgs podman;
-    name = "quadlet-generated-units";
+    name = "quadlet-package-user";
     type = "user";
     objects = cfg.allObjects;
   };
@@ -36,7 +38,7 @@ let
     obj:
     let
       service = "${obj.serviceName}.service";
-      source = "${cfg.generatedUnits}/lib/systemd/user/${service}";
+      source = "${unitPackage}/lib/systemd/user/${service}";
       mkEntry = path: lib.nameValuePair "systemd/user/${path}" { inherit source; };
       depsByDir = {
         wants = obj.wantedBy;
@@ -89,13 +91,6 @@ in
   imports = [ ./common.nix ];
   options = {
     virtualisation.quadlet = {
-      generatedUnits = lib.mkOption {
-        type = types.package;
-        internal = true;
-        description = ''
-          A package containing the systemd unit files produced by the podman user generator.
-        '';
-      };
       containers = lib.mkOption {
         type = types.attrsOf (mkSubmodule ../units/container.nix);
         default = { };
@@ -140,7 +135,7 @@ in
   };
 
   config = lib.mkIf (cfg.enable && cfg.allObjects != [ ]) {
-    virtualisation.quadlet.generatedUnits = generatedUnits;
+    virtualisation.quadlet.generatedUnits = lib.singleton unitPackage;
 
     xdg.configFile = lib.mkMerge [
       (lib.listToAttrs (lib.concatMap mkObjectConfigEntries cfg.allObjects))

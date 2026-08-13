@@ -39,6 +39,12 @@ in
         readOnly = true;
         default = lib.filter (x: x.enable) concatObjects;
       };
+      generatedUnits = lib.mkOption {
+        type = types.listOf types.package;
+        internal = true;
+        default = [ ];
+        description = "The packages containing the systemd unit files produced by the podman generator.";
+      };
     };
   };
   config = lib.mkIf (cfg.enable && cfg.allObjects != [ ]) {

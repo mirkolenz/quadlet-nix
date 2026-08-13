@@ -87,13 +87,6 @@ in
   imports = [ ./common.nix ];
   options = {
     virtualisation.quadlet = {
-      generatedUnits = lib.mkOption {
-        type = types.listOf types.package;
-        internal = true;
-        description = ''
-          Packages with generated systemd unit files that will be added to `systemd.packages`.
-        '';
-      };
       containers = lib.mkOption {
         type = types.attrsOf (mkSubmodule ../units/container.nix);
         default = { };
@@ -142,7 +135,7 @@ in
 
     virtualisation.quadlet.generatedUnits = unitPackages;
 
-    systemd.packages = cfg.generatedUnits;
+    systemd.packages = unitPackages;
 
     systemd.services = lib.mkMerge [
       rootfulOverrides
