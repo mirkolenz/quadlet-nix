@@ -82,6 +82,7 @@ lib: rec {
     {
       pkgs,
       podman,
+      quadlet,
       type,
       objects,
       name,
@@ -98,10 +99,11 @@ lib: rec {
     pkgs.runCommand name
       {
         QUADLET_UNIT_DIRS = lib.concatStringsSep ":" unitDirs;
+        PODMAN = lib.getExe podman;
       }
       ''
         mkdir -p "${outDir}"
-        ${lib.getLib podman}/lib/systemd/${type}-generators/podman-${type}-generator "${outDir}"
+        ${lib.getExe quadlet} ${lib.optionalString (type == "user") "-user"} "${outDir}"
 
         for service in ${lib.escapeShellArgs services}; do
           if [ ! -e "${outDir}/$service" ]; then

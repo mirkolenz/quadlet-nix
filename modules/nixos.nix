@@ -61,6 +61,7 @@ let
     scope: objects:
     lib'.mkQuadletUnitPackage {
       inherit pkgs podman objects;
+      quadlet = cfg.package;
       type = if scope == "system" then "system" else "user";
       name = "quadlet-package-${scope}";
     }
@@ -133,6 +134,7 @@ in
   config = lib.mkIf (cfg.enable && cfg.allObjects != [ ]) {
     virtualisation.podman.enable = true;
 
+    virtualisation.quadlet.podman = podman;
     virtualisation.quadlet.generatedUnits = unitPackages;
 
     systemd.packages = unitPackages;

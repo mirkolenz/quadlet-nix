@@ -1,16 +1,25 @@
-{ lib, config, ... }:
+{
+  lib,
+  config,
+  pkgs,
+  ...
+}:
 let
   inherit (lib) types;
   lib' = import ../lib.nix lib;
   cfg = config.virtualisation.quadlet;
 
   duplicateNames = lib.intersectLists (lib.attrNames cfg.containers) (lib.attrNames cfg.pods);
-  duplicateServiceNames = lib.pipe cfg.allObjects [
-    (map (obj: obj.serviceName))
-    (lib.groupBy lib.id)
-    (lib.filterAttrs (_: names: lib.length names > 1))
-    lib.attrNames
-  ];
+  duplicates =
+    key:
+    lib.pipe cfg.allObjects [
+      (map key)
+      (lib.groupBy lib.id)
+      (lib.filterAttrs (_: values: lib.length values > 1))
+      lib.attrNames
+    ];
+  duplicateRefs = duplicates (obj: obj.ref);
+  duplicateServiceNames = duplicates (obj: obj.serviceName);
   concatObjects = lib.concatMap lib.attrValues [
     cfg.artifacts
     cfg.builds
@@ -26,6 +35,17 @@ in
   options = {
     virtualisation.quadlet = {
       enable = lib.mkEnableOption "quadlet";
+      podman = lib.mkOption {
+        internal = true;
+        type = types.package;
+        description = "The podman package the units are generated for";
+      };
+      package = lib.mkOption {
+        type = types.package;
+        default = pkgs.callPackage ../pkgs/quadlet.nix { inherit (cfg) podman; };
+        defaultText = lib.literalExpression "pkgs.callPackage ./pkgs/quadlet.nix { }";
+        description = "The package providing the `quadlet` generator executable";
+      };
       autoUpdate = {
         enable = lib.mkEnableOption "quadlet auto update";
         startAt = lib.mkOption {
@@ -55,6 +75,13 @@ in
           The container/pod names should be unique!
           See: ${lib'.quadletDocsUrl}#podname
           The following names are not unique: ${lib.concatStringsSep " " duplicateNames}
+        '';
+      }
+      {
+        assertion = duplicateRefs == [ ];
+        message = ''
+          Quadlet unit file names should be unique.
+          The following unit files are not unique: ${lib.concatStringsSep " " duplicateRefs}
         '';
       }
       {

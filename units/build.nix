@@ -12,10 +12,9 @@
     };
   };
   config = {
-    ref = "${config.name}.build";
+    kind = "build";
     serviceName = lib.defaultTo "${config.name}-build" (config.buildConfig.ServiceName or null);
     podmanName = "systemd-${config.name}";
-    unitConfig.Description = "Podman build ${config.name}";
 
     finalConfig.Build = config.buildConfig;
   };

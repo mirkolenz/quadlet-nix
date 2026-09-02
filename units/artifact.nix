@@ -16,10 +16,9 @@
     };
   };
   config = {
-    ref = "${config.name}.artifact";
+    kind = "artifact";
     serviceName = lib.defaultTo "${config.name}-artifact" (config.artifactConfig.ServiceName or null);
     podmanName = "systemd-${config.name}";
-    unitConfig.Description = "Podman artifact ${config.name}";
 
     finalConfig.Artifact = config.artifactConfig;
   };

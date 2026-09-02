@@ -2,6 +2,7 @@
   description = "Development inputs for quadlet-nix. These do not appear in consumers' lock files.";
   inputs = {
     # quadlet-nix.url = "..";
+    nixpkgs-stable.url = "github:NixOS/nixpkgs/nixos-26.05";
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "";

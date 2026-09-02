@@ -29,6 +29,7 @@ let
   # share one generator run and references between units always resolve.
   unitPackage = lib'.mkQuadletUnitPackage {
     inherit pkgs podman;
+    quadlet = cfg.package;
     name = "quadlet-package-user";
     type = "user";
     objects = cfg.allObjects;
@@ -135,6 +136,7 @@ in
   };
 
   config = lib.mkIf (cfg.enable && cfg.allObjects != [ ]) {
+    virtualisation.quadlet.podman = podman;
     virtualisation.quadlet.generatedUnits = lib.singleton unitPackage;
 
     xdg.configFile = lib.mkMerge [

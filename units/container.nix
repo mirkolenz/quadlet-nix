@@ -38,7 +38,8 @@
       };
     in
     {
-      ref = "${config.name}.container";
+      kind = "container";
+      longRunning = true;
       serviceName = lib.defaultTo "${config.name}" (config.containerConfig.ServiceName or null);
       podmanName = lib.defaultTo "systemd-${config.name}" (config.containerConfig.ContainerName or null);
       containerConfig = lib.mkMerge [
@@ -51,17 +52,7 @@
           AutoUpdate = "disabled";
         })
       ];
-      unitConfig = {
-        Description = "Podman container ${config.name}";
-        StartLimitBurst = lib.mkDefault 3;
-        StartLimitIntervalSec = lib.mkDefault 600;
-      };
-      serviceConfig = {
-        Restart = lib.mkDefault "on-failure";
-        RestartSec = lib.mkDefault 5;
-        TimeoutStartSec = lib.mkDefault 900;
-        ExecStartPre = [ (lib.getExe prestart) ];
-      };
+      serviceConfig.ExecStartPre = [ (lib.getExe prestart) ];
 
       finalConfig.Container = config.containerConfig;
     };

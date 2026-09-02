@@ -12,10 +12,9 @@
     };
   };
   config = {
-    ref = "${config.name}.volume";
+    kind = "volume";
     serviceName = lib.defaultTo "${config.name}-volume" (config.volumeConfig.ServiceName or null);
     podmanName = lib.defaultTo "systemd-${config.name}" (config.volumeConfig.VolumeName or null);
-    unitConfig.Description = "Podman volume ${config.name}";
 
     finalConfig.Volume = config.volumeConfig;
   };

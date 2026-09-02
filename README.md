@@ -101,6 +101,7 @@ The clearest difference is where unit correctness is checked: this version valid
 
 - Unit files are produced inside a Nix derivation by invoking `podman-system-generator` / `podman-user-generator` at build time, rather than relying on the systemd generator at boot.
   The resulting package is added to `systemd.packages`.
+  The generator is built from the podman sources with its flag ordering made deterministic, so a regenerated unit only changes when its configuration does and nothing else is restarted on activation.
 - Quadlet keys are passed through verbatim using their original `PascalCase` names (e.g., `containerConfig.Image`, `containerConfig.PublishPort`).
   The upstream Podman documentation applies directly and new Quadlet keys work without changes to this module.
 - Because the generator runs at build time, podman itself validates the units and the build aborts unless every expected unit is emitted.

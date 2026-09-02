@@ -12,10 +12,9 @@
     };
   };
   config = {
-    ref = "${config.name}.image";
+    kind = "image";
     serviceName = lib.defaultTo "${config.name}-image" (config.imageConfig.ServiceName or null);
     podmanName = "systemd-${config.name}";
-    unitConfig.Description = "Podman image ${config.name}";
 
     finalConfig.Image = config.imageConfig;
   };

@@ -18,6 +18,12 @@
       type = lib.types.str;
       description = "The name of the podman object";
     };
+    kind = lib.mkOption {
+      internal = true;
+      readOnly = true;
+      type = lib.types.str;
+      description = "The kind of podman object (i.e., the unit file extension)";
+    };
     ref = lib.mkOption {
       readOnly = true;
       type = lib.types.str;
@@ -34,6 +40,12 @@
     finalConfig = lib'.mkUnitOption {
       internal = true;
       description = "The merged systemd unit configuration";
+    };
+    longRunning = lib.mkOption {
+      internal = true;
+      type = lib.types.bool;
+      default = false;
+      description = "Whether the unit runs a workload instead of creating a resource";
     };
     autoStartTarget = lib.mkOption {
       internal = true;
@@ -103,6 +115,19 @@
     };
   };
   config = {
+    ref = "${config.name}.${config.kind}";
+    unitConfig = lib.mkMerge [
+      { Description = lib.mkDefault "Podman ${config.kind} ${config.name}"; }
+      (lib.mkIf config.longRunning {
+        StartLimitBurst = lib.mkDefault 3;
+        StartLimitIntervalSec = lib.mkDefault 600;
+      })
+    ];
+    serviceConfig = lib.mkIf config.longRunning {
+      Restart = lib.mkDefault "on-failure";
+      RestartSec = lib.mkDefault 5;
+      TimeoutStartSec = lib.mkDefault 900;
+    };
     finalConfig = {
       Unit = config.unitConfig;
       Install = config.installConfig;

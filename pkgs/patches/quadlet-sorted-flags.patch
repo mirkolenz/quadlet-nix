@@ -1,0 +1,56 @@
+--- /dev/null
++++ b/pkg/systemd/quadlet/sorted.go
+@@ -0,0 +1,11 @@
++package quadlet
++
++import (
++	"maps"
++	"slices"
++)
++
++func sortedKeys[V any](values map[string]V) []string {
++	return slices.Sorted(maps.Keys(values))
++}
++
+--- a/pkg/systemd/quadlet/quadlet.go
++++ b/pkg/systemd/quadlet/quadlet.go
+@@ -2062,7 +2062,8 @@
+ }
+ 
+ func lookupAndAddString(unit *parser.UnitFile, group string, keys map[string]string, podman *PodmanCmdline) {
+-	for key, flag := range keys {
++	for _, key := range sortedKeys(keys) {
++		flag := keys[key]
+ 		if val, ok := unit.Lookup(group, key); ok && len(val) > 0 {
+ 			podman.add(flag, val)
+ 		}
+@@ -2070,7 +2071,8 @@
+ }
+ 
+ func lookupAndAddAllStrings(unit *parser.UnitFile, group string, keys map[string]string, podman *PodmanCmdline) {
+-	for key, flag := range keys {
++	for _, key := range sortedKeys(keys) {
++		flag := keys[key]
+ 		values := unit.LookupAll(group, key)
+ 		for _, val := range values {
+ 			podman.add(flag, val)
+@@ -2079,7 +2081,8 @@
+ }
+ 
+ func lookupAndAddBoolean(unit *parser.UnitFile, group string, keys map[string]string, podman *PodmanCmdline) {
+-	for key, flag := range keys {
++	for _, key := range sortedKeys(keys) {
++		flag := keys[key]
+ 		if val, ok := unit.LookupBoolean(group, key); ok {
+ 			podman.addBool(flag, val)
+ 		}
+@@ -2332,7 +2335,8 @@
+ 
+ func lookupAndAddKeyVals(unit *parser.UnitFile, group string, keys map[string]string, podman *PodmanCmdline) error {
+ 	var warnings error
+-	for key, flag := range keys {
++	for _, key := range sortedKeys(keys) {
++		flag := keys[key]
+ 		keyVals, warn := unit.LookupAllKeyVal(group, key)
+ 		warnings = errors.Join(warnings, warn)
+ 		podman.addKeys(flag, keyVals)
