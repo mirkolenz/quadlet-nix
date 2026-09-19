@@ -38,6 +38,32 @@ You can get started with the following minimal configuration:
 All available options are described in the [documentation](https://mirkolenz.github.io/quadlet-nix/index.html).
 You may also want to take a look at the [tests](https://github.com/mirkolenz/quadlet-nix/blob/main/dev/tests/nixos.nix) for more examples.
 
+## Rootless units
+
+`uid` selects the systemd manager that owns a unit.
+`null` installs a system unit and runs Podman rootfully, a positive UID installs a user unit for that UID's systemd user manager, and `uid = 0` is rejected because a rootful unit is expressed as `null`.
+The Home Manager module has no `uid` option at all, since a Home Manager configuration always covers exactly one user.
+
+This is unrelated to the identity inside the container, which is configured with the native Quadlet keys `User=`, `UserNS=`, `UIDMap=`, `GIDMap=`, `SubUIDMap=`, and `SubGIDMap=`.
+Creating the user account, enabling lingering, and allocating subordinate UID/GID ranges stay your responsibility:
+
+```nix
+users.users.app = {
+  isSystemUser = true;
+  uid = 990;
+  group = "app";
+  home = "/var/lib/app";
+  createHome = true;
+  linger = true;
+  autoSubUidGidRange = true;
+};
+
+virtualisation.quadlet.containers.web = {
+  uid = config.users.users.app.uid;
+  containerConfig.Image = "docker.io/library/nginx:latest";
+};
+```
+
 ## Quoting values
 
 For keys that hold `KEY=VALUE` assignments (e.g., `Environment`, `Label`, `Annotation`), use the attrset form so the entries are quoted automatically:
@@ -107,6 +133,7 @@ The clearest difference is where unit correctness is checked: this version valid
 - Because the generator runs at build time, podman itself validates the units and the build aborts unless every expected unit is emitted.
   Errors the generator would otherwise log and skip at boot become hard build failures, checked by the same tool that consumes the units instead of by option types that have to be kept in sync with upstream.
 - Rootless containers are supported directly from the NixOS module by setting a `uid` per object, Home Manager is not required.
+  See [Rootless units](#rootless-units).
 - Container images can be supplied as Nix packages via `imageFile` (e.g., `pkgs.dockerTools.buildImage`) or `imageStream` (e.g., `pkgs.dockerTools.streamLayeredImage`).
 - Releases follow semantic versioning with version tags (e.g., `v1`) for stable pinning and the flake is structured with [flake-parts](https://flake.parts).
 - Long-running units (`.container`, `.kube`, `.pod`) ship with overridable restart and rate-limit settings.

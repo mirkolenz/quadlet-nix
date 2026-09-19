@@ -75,20 +75,34 @@ in
           touch $out
         '';
 
-      # Assert the module rejects the configuration at evaluation time with a
-      # message naming the offending objects.
+      # Assert a condition decided during evaluation. A Nix bool reaches the
+      # builder as "1" when true and as the empty string when false.
+      mkBoolCheck =
+        name: passed:
+        pkgs.runCommand name { inherit passed; } ''
+          [[ -n "$passed" ]]
+          touch $out
+        '';
+
+      # Assert the module rejects the configuration with an assertion whose
+      # message names the offending objects.
       mkAssertionCheck =
         name: quadlet: expected:
-        pkgs.runCommand name
-          {
-            rejected = lib.any (
-              assertion: !assertion.assertion && lib.hasInfix expected assertion.message
-            ) (evalQuadlet inputs.nixpkgs quadlet).assertions;
-          }
-          ''
-            [[ -n "$rejected" ]]
-            touch $out
-          '';
+        mkBoolCheck name (
+          lib.any (
+            assertion: !assertion.assertion && lib.hasInfix expected assertion.message
+          ) (evalQuadlet inputs.nixpkgs quadlet).assertions
+        );
+
+      # A rootful and a rootless container to compare the two systemd scopes.
+      uidScope = evalQuadlet inputs.nixpkgs {
+        containers.rootful.containerConfig.Image = "localhost/rootful:latest";
+        containers.rootless = {
+          uid = 1000;
+          containerConfig.Image = "localhost/rootless:latest";
+        };
+      };
+      uidScopeUnits = uidScope.virtualisation.quadlet.containers;
 
       mkUnits =
         nixpkgs: publishPort:
@@ -197,6 +211,14 @@ in
         } "not unique: dup.container";
         generated-units = mkGeneratedUnitsCheck "quadlet-generated-units" inputs.nixpkgs;
         generated-units-stable = mkGeneratedUnitsCheck "quadlet-generated-units-stable" inputs.nixpkgs-stable;
+        # `uid` selects the systemd manager: null gives a system unit started by
+        # `multi-user.target`, a positive uid a user unit guarded by `ConditionUser=`.
+        uid-scope = mkBoolCheck "quadlet-uid-scope" (
+          uidScope.systemd.services.rootful.wantedBy == [ "multi-user.target" ]
+          && uidScope.systemd.user.services.rootless.wantedBy == [ "default.target" ]
+          && lib.hasInfix "ConditionUser=1000" uidScopeUnits.rootless.text
+          && !lib.hasInfix "ConditionUser" uidScopeUnits.rootful.text
+        );
         nixos = pkgs.testers.runNixOSTest {
           name = "nixos";
           imports = [ ./nixos.nix ];

@@ -6,10 +6,14 @@
 {
   options = {
     uid = lib.mkOption {
-      type = with lib.types; nullOr int;
+      type = with lib.types; nullOr ints.positive;
       example = 1000;
       default = null;
-      description = "The user ID to run the service as.";
+      description = ''
+        UID of the systemd user manager that owns this Quadlet.
+        When null, it becomes a system unit and Podman runs rootfully.
+        This selects the systemd manager only, not the identity inside the container.
+      '';
     };
   };
   config = lib.mkMerge [
