@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.5.3](https://github.com/mirkolenz/quadlet-nix/compare/v1.5.2...v1.5.3) (2026-09-22)
+
+### Bug Fixes
+
+* **nixos:** update rootless unit options and docs ([15229c2](https://github.com/mirkolenz/quadlet-nix/commit/15229c223bd10ef0daefb37859ce8d40f3aeeba3))
+
 ## [1.5.2](https://github.com/mirkolenz/quadlet-nix/compare/v1.5.1...v1.5.2) (2026-09-02)
 
 ### Bug Fixes
