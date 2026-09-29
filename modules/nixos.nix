@@ -74,15 +74,6 @@ let
   rootlessAutoUpdate = lib.mkIf (cfg.autoUpdate.enable && rootlessObjects != [ ]) (
     mkAutoUpdate (lib.unique (map (obj: toString obj.uid) rootlessObjects))
   );
-
-  podmanWaitOverride = lib.mkIf (rootlessObjects != [ ]) {
-    overrideStrategy = "asDropin";
-    serviceConfig.ExecSearchPath = [
-      "/bin"
-      "${lib.getBin pkgs.coreutils}/bin"
-      "${lib.getBin pkgs.systemd}/bin"
-    ];
-  };
 in
 {
   imports = [ ./common.nix ];
@@ -146,10 +137,7 @@ in
 
     systemd.user.services = lib.mkMerge [
       rootlessOverrides
-      {
-        quadlet-auto-update = rootlessAutoUpdate;
-        podman-user-wait-network-online = podmanWaitOverride;
-      }
+      { quadlet-auto-update = rootlessAutoUpdate; }
     ];
   };
 }

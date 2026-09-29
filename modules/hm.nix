@@ -52,17 +52,6 @@ let
     in
     map mkEntry ([ service ] ++ obj.aliases ++ depPaths);
 
-  podmanWaitOverride = {
-    text = lib'.mkUnitText {
-      Service.ExecSearchPath = [
-        "/bin"
-        "${lib.getBin pkgs.coreutils}/bin"
-        "${lib.getBin pkgs.systemd}/bin"
-      ];
-      Install.WantedBy = [ "default.target" ];
-    };
-  };
-
   autoUpdate = import ./update.nix {
     inherit lib podman;
     inherit (cfg.autoUpdate) startAt;
@@ -139,12 +128,7 @@ in
     virtualisation.quadlet.podman = podman;
     virtualisation.quadlet.generatedUnits = lib.singleton unitPackage;
 
-    xdg.configFile = lib.mkMerge [
-      (lib.listToAttrs (lib.concatMap mkObjectConfigEntries cfg.allObjects))
-      {
-        "systemd/user/podman-user-wait-network-online.service.d/override.conf" = podmanWaitOverride;
-      }
-    ];
+    xdg.configFile = lib.listToAttrs (lib.concatMap mkObjectConfigEntries cfg.allObjects);
 
     systemd.user.services.quadlet-auto-update = autoUpdateService;
     systemd.user.timers.quadlet-auto-update = autoUpdateTimer;
