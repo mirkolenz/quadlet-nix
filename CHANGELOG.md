@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.5.4](https://github.com/mirkolenz/quadlet-nix/compare/v1.5.3...v1.5.4) (2026-09-29)
+
+### Bug Fixes
+
+* **modules:** drop podman wait-online overrides ([222058f](https://github.com/mirkolenz/quadlet-nix/commit/222058f003b4963b1984446ba94a450658f3be5c))
+
 ## [1.5.3](https://github.com/mirkolenz/quadlet-nix/compare/v1.5.2...v1.5.3) (2026-09-22)
 
 ### Bug Fixes
