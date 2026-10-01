@@ -64,6 +64,24 @@ virtualisation.quadlet.containers.web = {
 };
 ```
 
+## Managing units with `quadletctl`
+
+Both modules install the `quadletctl` command, which knows every enabled unit from the configuration and dispatches it to the systemd manager, journal, and Podman storage of its owner.
+Each subcommand forwards its trailing arguments verbatim to the underlying command, so all of its flags keep working:
+
+```console
+$ quadletctl list                                   # owner, kind, podman name, and state of all units
+$ quadletctl systemctl restart web                  # systemctl [--user] restart web.service
+$ quadletctl journalctl web -f                      # journalctl --unit= or --user-unit=web.service
+$ quadletctl podman web exec -it systemd-web sh     # podman as the owner of web
+$ quadletctl shell web                              # shell as the owner of web
+```
+
+Units of other users require root or polkit authorization, while their accounts need neither a login shell nor journal permissions.
+The NixOS and Home Manager modules install the table of their units as `quadletctl/units.tsv` into `/etc/xdg` and `~/.config`, where `quadletctl` finds it via the XDG config directories.
+The command comes with help, man pages, and completions of the unit names for bash, fish, and zsh.
+Set `virtualisation.quadlet.quadletctl.enable = false` to omit it.
+
 ## Quoting values
 
 For keys that hold `KEY=VALUE` assignments (e.g., `Environment`, `Label`, `Annotation`), use the attrset form so the entries are quoted automatically:

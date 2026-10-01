@@ -129,7 +129,13 @@ in
     virtualisation.quadlet.podman = podman;
     virtualisation.quadlet.generatedUnits = lib.singleton unitPackage;
 
-    xdg.configFile = lib.listToAttrs (lib.concatMap mkObjectConfigEntries cfg.allObjects);
+    xdg.configFile =
+      lib.listToAttrs (lib.concatMap mkObjectConfigEntries cfg.allObjects)
+      // lib.optionalAttrs cfg.quadletctl.enable {
+        "quadletctl/units.tsv".text = cfg.quadletctl.units;
+      };
+
+    home.packages = lib.mkIf cfg.quadletctl.enable [ cfg.quadletctl.package ];
 
     systemd.user.services.quadlet-auto-update = autoUpdateService;
     systemd.user.timers.quadlet-auto-update = autoUpdateTimer;

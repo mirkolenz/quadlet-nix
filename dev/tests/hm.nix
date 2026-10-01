@@ -53,7 +53,8 @@
   testScript =
     { nodes }:
     let
-      containers = nodes.machine.home-manager.users.quadlet.virtualisation.quadlet.containers;
+      home = nodes.machine.home-manager.users.quadlet;
+      containers = home.virtualisation.quadlet.containers;
       user = nodes.machine.users.users.quadlet;
     in
     ''
@@ -79,5 +80,7 @@
 
       machine.wait_for_unit("${containers.nginx-image-stream.serviceName}.service", "${user.name}")
       assert 'nginx' in machine.succeed("curl http://127.0.0.1:8081").lower()
+
+      machine.succeed("sudo -H -u ${user.name} XDG_RUNTIME_DIR=/run/user/${toString user.uid} ${home.virtualisation.quadlet.quadletctl.package}/bin/quadletctl systemctl is-active ${containers.nginx.serviceName} --quiet")
     '';
 }

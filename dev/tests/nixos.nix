@@ -64,6 +64,7 @@
     in
     ''
       import json
+      import re
 
       # A restart gives a unit a fresh invocation id.
       tracked = {
@@ -103,9 +104,18 @@
       assert 'nginx' in machine.succeed("curl http://127.0.0.1:8081").lower()
 
       machine.wait_for_unit("${containers.nginx-rootless.serviceName}.service", "${user.name}")
-      containers = json.loads(machine.succeed("sudo -u ${user.name} -- podman ps --format json"))
+      containers = json.loads(machine.succeed("quadletctl podman ${containers.nginx-rootless.serviceName} ps --format json"))
       assert len(containers) == 1, f"Expected 1 user container, got: {len(containers)}"
       assert 'nginx' in machine.succeed("curl http://127.0.0.1:8082").lower()
+
+      # quadletctl dispatches every unit to the manager, journal and podman storage of its owner.
+      units = machine.succeed("quadletctl list")
+      for service, podman in [("${containers.nginx.serviceName}", "${containers.nginx.podmanName}"), ("${containers.nginx-rootless.serviceName}", "${containers.nginx-rootless.podmanName}")]:
+          machine.succeed(f"quadletctl systemctl is-active {service} --quiet")
+          machine.succeed(f"quadletctl podman {service} exec {podman} nginx -v")
+          assert re.search(rf"^{service} .* {podman} +active$", units, re.MULTILINE), units
+      machine.fail("quadletctl podman ${containers.nginx-rootless.serviceName} exec ${containers.nginx-rootless.podmanName} false")
+      machine.wait_until_succeeds("quadletctl journalctl ${containers.nginx-rootless.serviceName} --no-pager | grep -q 'GET /'")
 
       running = snapshot()
 
@@ -123,7 +133,7 @@
       assert len(containers) == 2, f"Expected 2 system containers, got: {len(containers)}"
       running = check_untouched(running, "Removing a container")
 
-      reload_env_check = "sudo -u ${user.name} -- podman inspect ${containers.nginx-rootless.podmanName} --format '{{range .Config.Env}}{{println .}}{{end}}' | grep -qx QUADLET_RELOAD_TEST=reloaded"
+      reload_env_check = "quadletctl podman ${containers.nginx-rootless.serviceName} inspect ${containers.nginx-rootless.podmanName} --format '{{range .Config.Env}}{{println .}}{{end}}' | grep -qx QUADLET_RELOAD_TEST=reloaded"
       machine.fail(reload_env_check)
       machine.succeed("${nodes.machine.system.build.toplevel}/specialisation/userReload/bin/switch-to-configuration test")
       machine.wait_for_unit("default.target", "${user.name}")

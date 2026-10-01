@@ -128,6 +128,11 @@ in
 
     systemd.packages = unitPackages;
 
+    environment = lib.mkIf cfg.quadletctl.enable {
+      systemPackages = [ cfg.quadletctl.package ];
+      etc."xdg/quadletctl/units.tsv".text = cfg.quadletctl.units;
+    };
+
     systemd.services = lib.mkMerge [
       rootfulOverrides
       { quadlet-auto-update = rootfulAutoUpdate; }

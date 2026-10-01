@@ -54,6 +54,26 @@ in
           description = "The time to start the auto update";
         };
       };
+      quadletctl = {
+        enable = lib.mkEnableOption "the `quadletctl` command to manage the units" // {
+          default = true;
+        };
+        package = lib.mkOption {
+          type = types.package;
+          default = pkgs.callPackage ../pkgs/quadletctl.nix { inherit (cfg) podman; };
+          defaultText = lib.literalExpression "pkgs.callPackage ./pkgs/quadletctl.nix { }";
+          description = "The package providing the `quadletctl` executable";
+        };
+        units = lib.mkOption {
+          internal = true;
+          readOnly = true;
+          type = types.lines;
+          default = lib.concatMapStrings (
+            obj: "${obj.serviceName}\t${obj.kind}\t${obj.podmanName}\t${obj.owner}\n"
+          ) cfg.allObjects;
+          description = "The table of units that `quadletctl` reads at runtime";
+        };
+      };
       allObjects = lib.mkOption {
         internal = true;
         readOnly = true;
