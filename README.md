@@ -1,9 +1,7 @@
 # quadlet-nix
 
-NixOS module for
-[Quadlet / podman-systemd](https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html).
-Inspired by the excellent work of
-[SEIAROTg](https://github.com/SEIAROTg/quadlet-nix), but rewritten from scratch.
+NixOS module for [Quadlet / podman-systemd](https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html).
+Inspired by the excellent work of [SEIAROTg](https://github.com/SEIAROTg/quadlet-nix), but rewritten from scratch.
 You can get started with the following minimal configuration:
 
 ```nix
@@ -37,24 +35,17 @@ You can get started with the following minimal configuration:
 }
 ```
 
-All available options are described in the
-[documentation](https://mirkolenz.github.io/quadlet-nix/index.html). You may
-also want to take a look at the
-[tests](https://github.com/mirkolenz/quadlet-nix/blob/main/dev/tests/nixos.nix)
-for more examples.
+All available options are described in the [documentation](https://mirkolenz.github.io/quadlet-nix/index.html).
+You may also want to take a look at the [tests](https://github.com/mirkolenz/quadlet-nix/blob/main/dev/tests/nixos.nix) for more examples.
 
 ## Rootless units
 
-`uid` selects the systemd manager that owns a unit. `null` installs a system
-unit and runs Podman rootfully, a positive UID installs a user unit for that
-UID's systemd user manager, and `uid = 0` is rejected because a rootful unit is
-expressed as `null`. The Home Manager module has no `uid` option at all, since a
-Home Manager configuration always covers exactly one user.
+`uid` selects the systemd manager that owns a unit.
+`null` installs a system unit and runs Podman rootfully, a positive UID installs a user unit for that UID's systemd user manager, and `uid = 0` is rejected because a rootful unit is expressed as `null`.
+The Home Manager module has no `uid` option at all, since a Home Manager configuration always covers exactly one user.
 
-This is unrelated to the identity inside the container, which is configured with
-the native Quadlet keys `User=`, `UserNS=`, `UIDMap=`, `GIDMap=`, `SubUIDMap=`,
-and `SubGIDMap=`. Creating the user account, enabling lingering, and allocating
-subordinate UID/GID ranges stay your responsibility:
+This is unrelated to the identity inside the container, which is configured with the native Quadlet keys `User=`, `UserNS=`, `UIDMap=`, `GIDMap=`, `SubUIDMap=`, and `SubGIDMap=`.
+Creating the user account, enabling lingering, and allocating subordinate UID/GID ranges stay your responsibility:
 
 ```nix
 users.users.app = {
@@ -75,10 +66,8 @@ virtualisation.quadlet.containers.web = {
 
 ## Managing units with `quadletctl`
 
-Both modules install the `quadletctl` command, which knows every enabled unit
-from the configuration and dispatches it to the systemd manager, journal, and
-Podman storage of its owner. Each subcommand forwards its trailing arguments
-verbatim to the underlying command, so all of its flags keep working:
+Both modules install the `quadletctl` command, which knows every enabled unit from the configuration and dispatches it to the systemd manager, journal, and Podman storage of its owner.
+Each subcommand forwards its trailing arguments verbatim to the underlying command, so all of its flags keep working:
 
 ```console
 $ quadletctl list                                   # owner, kind, podman name, and state of all units
@@ -88,18 +77,14 @@ $ quadletctl podman web exec -it systemd-web sh     # podman as the owner of web
 $ quadletctl shell web                              # shell as the owner of web
 ```
 
-Units of other users require root or polkit authorization, while their accounts
-need neither a login shell nor journal permissions. The NixOS and Home Manager
-modules install the table of their units as `quadletctl/units.tsv` into
-`/etc/xdg` and `~/.config`, where `quadletctl` finds it via the XDG config
-directories. The command comes with help, man pages, and completions of the unit
-names for bash, fish, and zsh. Set
-`virtualisation.quadlet.quadletctl.enable = false` to omit it.
+Units of other users require root or polkit authorization, while their accounts need neither a login shell nor journal permissions.
+The NixOS and Home Manager modules install the table of their units as `quadletctl/units.tsv` into `/etc/xdg` and `~/.config`, where `quadletctl` finds it via the XDG config directories.
+The command comes with help, man pages, and completions of the unit names for bash, fish, and zsh.
+Set `virtualisation.quadlet.quadletctl.enable = false` to omit it.
 
 ## Quoting values
 
-For keys that hold `KEY=VALUE` assignments (e.g., `Environment`, `Label`,
-`Annotation`), use the attrset form so the entries are quoted automatically:
+For keys that hold `KEY=VALUE` assignments (e.g., `Environment`, `Label`, `Annotation`), use the attrset form so the entries are quoted automatically:
 
 ```nix
 containerConfig.Environment = { TZ = "Europe/Berlin"; };
@@ -121,15 +106,12 @@ containerConfig.Label = [
         ];
 ```
 
-All other values are written into the unit file verbatim. Whitespace and other
-special characters are handled by Quadlet itself when it builds the resulting
-`ExecStart=` line, so no additional quoting is required.
+All other values are written into the unit file verbatim.
+Whitespace and other special characters are handled by Quadlet itself when it builds the resulting `ExecStart=` line, so no additional quoting is required.
 
 ## Restart and rate-limit defaults
 
-For long-running units (`.container`, `.kube`, `.pod`) the module sets a few
-`[Service]` / `[Unit]` keys as `lib.mkDefault` to replace systemd defaults that
-are unsafe for containers.
+For long-running units (`.container`, `.kube`, `.pod`) the module sets a few `[Service]` / `[Unit]` keys as `lib.mkDefault` to replace systemd defaults that are unsafe for containers.
 
 | Key                                         | Default      | Reason                                                                             |
 | ------------------------------------------- | ------------ | ---------------------------------------------------------------------------------- |
@@ -138,29 +120,23 @@ are unsafe for containers.
 | `TimeoutStartSec`                           | `900s`       | Systemd's `90s` is often too short for image pulls or cold-start workloads.        |
 | `StartLimitBurst` / `StartLimitIntervalSec` | `3` / `600s` | Hard-fail after 3 restarts in 10 minutes so a broken unit doesn't loop forever.    |
 
-The burst limit only fires when
-`(TimeoutStartSec + RestartSec) × StartLimitBurst ≤ StartLimitIntervalSec`,
-which holds for typical fast-starting services. A unit that consistently hangs
-all the way to `TimeoutStartSec` will retry indefinitely because each attempt
-falls outside the rate-limit window. Tighten `TimeoutStartSec` (or widen
-`StartLimitIntervalSec`) downstream when you want hung-start loops to hard-fail.
+The burst limit only fires when `(TimeoutStartSec + RestartSec) × StartLimitBurst ≤ StartLimitIntervalSec`, which holds for typical fast-starting services.
+A unit that consistently hangs all the way to `TimeoutStartSec` will retry indefinitely because each attempt falls outside the rate-limit window.
+Tighten `TimeoutStartSec` (or widen `StartLimitIntervalSec`) downstream when you want hung-start loops to hard-fail.
 
 ## Overriding the generated unit
 
-Each `*Config` section passes its keys through verbatim, so any Quadlet key can
-be set directly under its section using the upstream `PascalCase` name. For the
-rare cases this does not cover, two escape hatches are available.
+Each `*Config` section passes its keys through verbatim, so any Quadlet key can be set directly under its section using the upstream `PascalCase` name.
+For the rare cases this does not cover, two escape hatches are available.
 
-`extraConfig` is a freeform set of `[Section]` keys merged over the generated
-unit and takes precedence, so it can override a value the module sets itself:
+`extraConfig` is a freeform set of `[Section]` keys merged over the generated unit and takes precedence, so it can override a value the module sets itself:
 
 ```nix
 # Any [Section], any value, written through with the last word:
 extraConfig.Service.TimeoutStartSec = "300";
 ```
 
-`rawConfig` replaces the entire unit file with the given text, bypassing
-generation completely:
+`rawConfig` replaces the entire unit file with the given text, bypassing generation completely:
 
 ```nix
 rawConfig = ''
@@ -172,44 +148,25 @@ rawConfig = ''
 ## Comparison to [SEIAROTg/quadlet-nix](https://github.com/SEIAROTg/quadlet-nix)
 
 The two implementations solve the same problem but make different trade-offs.
-The clearest difference is where unit correctness is checked: this version
-validates at build time, the original at evaluation time.
+The clearest difference is where unit correctness is checked: this version validates at build time, the original at evaluation time.
 
 ### Where this version differs
 
-- Unit files are produced inside a Nix derivation by invoking
-  `podman-system-generator` / `podman-user-generator` at build time, rather than
-  relying on the systemd generator at boot. The resulting package is added to
-  `systemd.packages`. The generator is built from the podman sources with its
-  flag ordering made deterministic, so a regenerated unit only changes when its
-  configuration does and nothing else is restarted on activation.
-- Quadlet keys are passed through verbatim using their original `PascalCase`
-  names (e.g., `containerConfig.Image`, `containerConfig.PublishPort`). The
-  upstream Podman documentation applies directly and new Quadlet keys work
-  without changes to this module.
-- Because the generator runs at build time, podman itself validates the units
-  and the build aborts unless every expected unit is emitted. Errors the
-  generator would otherwise log and skip at boot become hard build failures,
-  checked by the same tool that consumes the units instead of by option types
-  that have to be kept in sync with upstream.
-- Rootless containers are supported directly from the NixOS module by setting a
-  `uid` per object, Home Manager is not required. See
-  [Rootless units](#rootless-units).
-- Container images can be supplied as Nix packages via `imageFile` (e.g.,
-  `pkgs.dockerTools.buildImage`) or `imageStream` (e.g.,
-  `pkgs.dockerTools.streamLayeredImage`).
-- Releases follow semantic versioning with version tags (e.g., `v1`) for stable
-  pinning and the flake is structured with [flake-parts](https://flake.parts).
-- Long-running units (`.container`, `.kube`, `.pod`) ship with overridable
-  restart and rate-limit settings.
+- Unit files are produced inside a Nix derivation by invoking `podman-system-generator` / `podman-user-generator` at build time, rather than relying on the systemd generator at boot.
+  The resulting package is added to `systemd.packages`.
+  The generator is built from the podman sources with its flag ordering made deterministic, so a regenerated unit only changes when its configuration does and nothing else is restarted on activation.
+- Quadlet keys are passed through verbatim using their original `PascalCase` names (e.g., `containerConfig.Image`, `containerConfig.PublishPort`).
+  The upstream Podman documentation applies directly and new Quadlet keys work without changes to this module.
+- Because the generator runs at build time, podman itself validates the units and the build aborts unless every expected unit is emitted.
+  Errors the generator would otherwise log and skip at boot become hard build failures, checked by the same tool that consumes the units instead of by option types that have to be kept in sync with upstream.
+- Rootless containers are supported directly from the NixOS module by setting a `uid` per object, Home Manager is not required.
+  See [Rootless units](#rootless-units).
+- Container images can be supplied as Nix packages via `imageFile` (e.g., `pkgs.dockerTools.buildImage`) or `imageStream` (e.g., `pkgs.dockerTools.streamLayeredImage`).
+- Releases follow semantic versioning with version tags (e.g., `v1`) for stable pinning and the flake is structured with [flake-parts](https://flake.parts).
+- Long-running units (`.container`, `.kube`, `.pod`) ship with overridable restart and rate-limit settings.
 
 ### Where the original may suit you better
 
-- Each Quadlet key is exposed as a dedicated, individually typed and documented
-  option (e.g., `containerConfig.publishPorts : listOf str`), giving you
-  per-field type checking and inline help.
-- That typing catches structural mistakes earlier, during evaluation rather than
-  at build time, e.g., rejecting `Exec = [ "a" "b" ]` since Quadlet only honors
-  a single value.
-- Longer track record and a more elaborate README with recipes and comparisons
-  to other tools.
+- Each Quadlet key is exposed as a dedicated, individually typed and documented option (e.g., `containerConfig.publishPorts : listOf str`), giving you per-field type checking and inline help.
+- That typing catches structural mistakes earlier, during evaluation rather than at build time, e.g., rejecting `Exec = [ "a" "b" ]` since Quadlet only honors a single value.
+- Longer track record and a more elaborate README with recipes and comparisons to other tools.
