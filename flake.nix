@@ -25,6 +25,7 @@
         partitionedAttrs = {
           checks = "dev";
           formatter = "dev";
+          nixosConfigurations = "dev";
         };
         partitions.dev = {
           extraInputsFlake = ./dev;
