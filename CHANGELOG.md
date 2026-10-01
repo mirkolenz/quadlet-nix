@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.6.0](https://github.com/mirkolenz/quadlet-nix/compare/v1.5.4...v1.6.0) (2026-10-01)
+
+### Features
+
+* **quadletctl:** add command to manage units across managers ([dd9d0ec](https://github.com/mirkolenz/quadlet-nix/commit/dd9d0ec42c9e1527e5177b666fda1b7ad6cf8556))
+
+### Bug Fixes
+
+* **dev:** expose eval-only nixos configurations ([9bf49fe](https://github.com/mirkolenz/quadlet-nix/commit/9bf49feabc6ff659fef25b0400904eece3234d32))
+
 ## [1.5.4](https://github.com/mirkolenz/quadlet-nix/compare/v1.5.3...v1.5.4) (2026-09-29)
 
 ### Bug Fixes
