@@ -91,12 +91,7 @@ containerConfig.Environment = { TZ = "Europe/Berlin"; };
 containerConfig.Label = { description = "My web server"; };
 ```
 
-The same result can be expressed via the list form with `lib.strings.toJSON`,
-which is useful when an attrset cannot represent the value (e.g., duplicate
-keys). Key/value pairs must be `KEY=VALUE` without whitespace when using
-`lib.strings.toJSON`. If instead `KEY = VALUE` is used the extra whitespace
-characters will get translated and may cause unexpected behavior in the
-container:
+The same result can be expressed via the list form with `lib.strings.toJSON`, which is useful when an attrset cannot represent the value (e.g., duplicate keys). Key/value pairs must be `KEY=VALUE` without whitespace when using `lib.strings.toJSON`. If instead `KEY = VALUE` is used the extra whitespace characters will get translated and may cause unexpected behavior in the container:
 
 ```nix
 containerConfig.Label = [
