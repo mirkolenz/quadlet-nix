@@ -24,6 +24,12 @@
       type = lib.types.str;
       description = "The kind of podman object (i.e., the unit file extension)";
     };
+    owner = lib.mkOption {
+      internal = true;
+      readOnly = true;
+      type = lib.types.strMatching "system|user|[0-9]+";
+      description = "The systemd manager of the unit, which is `system`, `user` for the configured user, or a UID";
+    };
     ref = lib.mkOption {
       readOnly = true;
       type = lib.types.str;

@@ -17,6 +17,10 @@
     };
   };
   config = lib.mkMerge [
+    # A single definition, since the option is read-only.
+    {
+      owner = if config.uid == null then "system" else toString config.uid;
+    }
     (lib.mkIf (config.uid == null) {
       autoStartTarget = "multi-user.target";
     })

@@ -25,8 +25,12 @@ let
       };
     };
 
-  rootfulObjects = lib.filter (obj: obj.uid == null) cfg.allObjects;
-  rootlessObjects = lib.filter (obj: obj.uid != null) cfg.allObjects;
+  # Objects only share a generator run when they share a podman storage and a
+  # systemd manager, so references between units cannot cross that boundary.
+  objectsByOwner = lib.groupBy (obj: obj.owner) cfg.allObjects;
+  rootfulObjects = objectsByOwner.system or [ ];
+  rootlessObjectsByOwner = removeAttrs objectsByOwner [ "system" ];
+  rootlessObjects = lib.concatLists (lib.attrValues rootlessObjectsByOwner);
 
   mkAutoUpdate =
     conditionUsers:
@@ -51,28 +55,22 @@ let
         ;
     };
 
-  # Objects only share a generator run when they share a podman storage and a
-  # systemd manager, so references between units cannot cross that boundary.
-  objectsByScope = lib.groupBy (
-    obj: if obj.uid == null then "system" else "user-${toString obj.uid}"
-  ) cfg.allObjects;
-
   unitPackages = lib.mapAttrsToList (
-    scope: objects:
+    owner: objects:
     lib'.mkQuadletUnitPackage {
       inherit pkgs podman objects;
       quadlet = cfg.package;
-      type = if scope == "system" then "system" else "user";
-      name = "quadlet-package-${scope}";
+      type = if owner == "system" then "system" else "user";
+      name = "quadlet-package-${owner}";
     }
-  ) objectsByScope;
+  ) objectsByOwner;
 
-  rootfulOverrides = lib.listToAttrs (map mkServiceOverride rootfulObjects);
-  rootlessOverrides = lib.listToAttrs (map mkServiceOverride rootlessObjects);
+  rootfulOverrides = lib.genAttrs' rootfulObjects mkServiceOverride;
+  rootlessOverrides = lib.genAttrs' rootlessObjects mkServiceOverride;
 
   rootfulAutoUpdate = lib.mkIf (cfg.autoUpdate.enable && rootfulObjects != [ ]) (mkAutoUpdate null);
   rootlessAutoUpdate = lib.mkIf (cfg.autoUpdate.enable && rootlessObjects != [ ]) (
-    mkAutoUpdate (lib.unique (map (obj: toString obj.uid) rootlessObjects))
+    mkAutoUpdate (lib.attrNames rootlessObjectsByOwner)
   );
 in
 {

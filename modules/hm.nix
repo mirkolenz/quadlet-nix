@@ -19,6 +19,7 @@ let
         path
         ../units/common.nix
       ];
+      owner = "user";
       _module.args = {
         inherit lib' podman;
         inherit (pkgs) writeShellApplication;
