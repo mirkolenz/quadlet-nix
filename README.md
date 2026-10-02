@@ -84,17 +84,24 @@ Set `virtualisation.quadlet.quadletctl.enable = false` to omit it.
 
 ## Quoting values
 
-For keys that hold `KEY=VALUE` assignments (e.g., `Environment`, `Label`, `Annotation`), use the attrset form so the entries are quoted automatically:
+For keys that hold `KEY=VALUE` assignments (e.g., `Environment`, `Label`, `Annotation`), use the attrset form so the entries are quoted automatically.
+Quote dotted keys, since Nix would otherwise parse them as nested attrsets:
 
 ```nix
 containerConfig.Environment = { TZ = "Europe/Berlin"; };
-containerConfig.Label = { description = "My web server"; };
+containerConfig.Label = { "org.opencontainers.image.title" = "My web server"; };
 ```
 
-The same result can be expressed via the list form with `lib.strings.toJSON`, which is useful when an attrset cannot represent the value (e.g., duplicate keys):
+List entries are written verbatim, so use the attrset form for `KEY=VALUE` pairs.
+The list form is needed for entries without a value, which Podman passes through from the service environment (e.g., to keep secrets out of the Nix store).
+Both forms can be combined via `lib.mkMerge` or separate definitions:
 
 ```nix
-containerConfig.Label = [ (lib.strings.toJSON "description=My web server") ];
+serviceConfig.EnvironmentFile = "/run/secrets/web.env";
+containerConfig.Environment = lib.mkMerge [
+  { TZ = "Europe/Berlin"; }
+  [ "API_TOKEN" ]
+];
 ```
 
 All other values are written into the unit file verbatim.
