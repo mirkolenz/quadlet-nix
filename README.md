@@ -117,9 +117,16 @@ With Home Manager, it configures `services.podman.autoUpdate`.
 
 Pruning is left to Podman and NixOS as well: besides the prune of every auto-update, `virtualisation.podman.autoPrune.enable` prunes the rootful storage on a schedule.
 
+## Resource units
+
+Images, volumes, networks, builds and artifacts are created when a unit that references them starts, as Quadlet adds the `Requires=` itself, so their `autoStart` defaults to false.
+Long-running units (`.container`, `.kube`, `.pod`) default to starting at boot, except for a container or kube with `serviceConfig.Type = "oneshot"`, which runs to completion like a resource.
+Set `autoStart = true` to run it at boot anyway.
+
 ## Restart and rate-limit defaults
 
-For long-running units (`.container`, `.kube`, `.pod`) the module sets a few `[Service]` / `[Unit]` keys as `lib.mkDefault` to replace systemd defaults that are unsafe for containers.
+For long-running units (`.container`, `.kube`, `.pod`) the module sets a few `[Service]` / `[Unit]` keys to replace systemd defaults that are unsafe for containers.
+Any value set in `serviceConfig` or `unitConfig` takes precedence, and a container or kube with `serviceConfig.Type = "oneshot"` runs to completion and keeps systemd's defaults.
 
 | Key                                         | Default      | Reason                                                                             |
 | ------------------------------------------- | ------------ | ---------------------------------------------------------------------------------- |

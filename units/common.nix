@@ -70,7 +70,8 @@
       description = "The attribute name used to derive the other names";
     };
     autoStart = (lib.mkEnableOption "service auto-start") // {
-      default = true;
+      default = config.longRunning;
+      defaultText = lib.literalMD "whether the unit runs a workload, unlike a resource that its dependents start";
     };
     extraConfig = lib'.mkUnitOption {
       description = "Additional systemd unit configuration";
@@ -120,31 +121,33 @@
       description = "The list of systemd targets that uphold the unit";
     };
   };
-  config = {
-    ref = "${config.name}.${config.kind}";
-    unitConfig = lib.mkMerge [
-      { Description = lib.mkDefault "Podman ${config.kind} ${config.name}"; }
-      (lib.mkIf config.longRunning {
-        StartLimitBurst = lib.mkDefault 3;
-        StartLimitIntervalSec = lib.mkDefault 600;
-      })
-    ];
-    serviceConfig = lib.mkIf config.longRunning {
-      Restart = lib.mkDefault "on-failure";
-      RestartSec = lib.mkDefault 5;
-      TimeoutStartSec = lib.mkDefault 900;
+  config =
+    let
+      # Applied beneath the sections rather than as `mkDefault` definitions of
+      # them, since containers and kubes read `Type` from them for `longRunning`.
+      defaults = section: values: lib.optionalAttrs config.longRunning values // section;
+    in
+    {
+      ref = "${config.name}.${config.kind}";
+      unitConfig.Description = lib.mkDefault "Podman ${config.kind} ${config.name}";
+      finalConfig = {
+        Unit = defaults config.unitConfig {
+          StartLimitBurst = 3;
+          StartLimitIntervalSec = 600;
+        };
+        Install = config.installConfig;
+        Service = defaults config.serviceConfig {
+          Restart = "on-failure";
+          RestartSec = 5;
+          TimeoutStartSec = 900;
+        };
+        Quadlet = config.quadletConfig;
+      };
+      text =
+        if config.rawConfig != null then
+          config.rawConfig
+        else
+          lib'.mkUnitText (lib.recursiveUpdate config.finalConfig config.extraConfig);
+      wantedBy = lib.mkIf config.autoStart [ config.autoStartTarget ];
     };
-    finalConfig = {
-      Unit = config.unitConfig;
-      Install = config.installConfig;
-      Service = config.serviceConfig;
-      Quadlet = config.quadletConfig;
-    };
-    text =
-      if config.rawConfig != null then
-        config.rawConfig
-      else
-        lib'.mkUnitText (lib.recursiveUpdate config.finalConfig config.extraConfig);
-    wantedBy = lib.mkIf config.autoStart [ config.autoStartTarget ];
-  };
 }

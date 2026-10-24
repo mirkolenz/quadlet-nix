@@ -13,7 +13,8 @@
   };
   config = {
     kind = "kube";
-    longRunning = true;
+    # A oneshot runs to completion, like a resource.
+    longRunning = config.serviceConfig.Type or null != "oneshot";
     serviceName = lib.defaultTo "${config.name}" (config.kubeConfig.ServiceName or null);
     # The objects are named in the YAML files, which `podman kube down` takes.
     podmanName = lib.mapNullable (yaml: lib.concatStringsSep " " (lib.toList yaml)) (

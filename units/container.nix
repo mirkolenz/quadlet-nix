@@ -39,7 +39,8 @@
     in
     {
       kind = "container";
-      longRunning = true;
+      # A oneshot runs to completion, like a resource.
+      longRunning = config.serviceConfig.Type or null != "oneshot";
       serviceName = lib.defaultTo "${config.name}" (config.containerConfig.ServiceName or null);
       # Quadlet names the container after the service, as `systemd-%N`.
       podmanName = lib.defaultTo "systemd-${config.serviceName}" (
