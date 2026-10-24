@@ -14,7 +14,8 @@
   config = {
     kind = "image";
     serviceName = lib.defaultTo "${config.name}-image" (config.imageConfig.ServiceName or null);
-    podmanName = "systemd-${config.name}";
+    # What Quadlet resolves `Image=<name>.image` to.
+    podmanName = config.imageConfig.ImageTag or config.imageConfig.Image or null;
 
     finalConfig.Image = config.imageConfig;
   };

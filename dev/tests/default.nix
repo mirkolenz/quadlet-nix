@@ -104,6 +104,12 @@ in
       };
       uidScopeUnits = uidScope.virtualisation.quadlet.containers;
 
+      # Quadlet names a container after its service.
+      podmanNames =
+        (evalQuadlet inputs.nixpkgs {
+          containers.web.containerConfig.ServiceName = "renamed";
+        }).virtualisation.quadlet;
+
       mkUnits =
         nixpkgs: publishPort:
         pkgs.symlinkJoin {
@@ -218,6 +224,9 @@ in
           && uidScope.systemd.user.services.rootless.wantedBy == [ "default.target" ]
           && lib.hasInfix "ConditionUser=1000" uidScopeUnits.rootless.text
           && !lib.hasInfix "ConditionUser" uidScopeUnits.rootful.text
+        );
+        podman-names = mkBoolCheck "quadlet-podman-names" (
+          podmanNames.containers.web.podmanName == "systemd-renamed"
         );
         nixos = pkgs.testers.runNixOSTest {
           name = "nixos";

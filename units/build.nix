@@ -14,7 +14,9 @@
   config = {
     kind = "build";
     serviceName = lib.defaultTo "${config.name}-build" (config.buildConfig.ServiceName or null);
-    podmanName = "systemd-${config.name}";
+    podmanName = lib.mapNullable (tags: lib.head (lib.toList tags)) (
+      config.buildConfig.ImageTag or null
+    );
 
     finalConfig.Build = config.buildConfig;
   };

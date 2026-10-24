@@ -15,8 +15,8 @@
     };
     podmanName = lib.mkOption {
       readOnly = true;
-      type = lib.types.str;
-      description = "The name of the podman object";
+      type = lib.types.nullOr lib.types.str;
+      description = "The name of the podman object, such as the container name or the image an image or build unit stores, or null if a `rawConfig` hides it";
     };
     kind = lib.mkOption {
       internal = true;

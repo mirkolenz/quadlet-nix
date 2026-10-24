@@ -18,7 +18,7 @@
   config = {
     kind = "artifact";
     serviceName = lib.defaultTo "${config.name}-artifact" (config.artifactConfig.ServiceName or null);
-    podmanName = "systemd-${config.name}";
+    podmanName = config.artifactConfig.Artifact or null;
 
     finalConfig.Artifact = config.artifactConfig;
   };

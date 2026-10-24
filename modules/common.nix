@@ -69,7 +69,8 @@ in
           readOnly = true;
           type = types.lines;
           default = lib.concatMapStrings (
-            obj: "${obj.serviceName}\t${obj.kind}\t${obj.podmanName}\t${obj.owner}\n"
+            # An empty field would collapse, since tabs are whitespace for `read`.
+            obj: "${obj.serviceName}\t${obj.kind}\t${lib.defaultTo "-" obj.podmanName}\t${obj.owner}\n"
           ) cfg.allObjects;
           description = "The table of units that `quadletctl` reads at runtime";
         };

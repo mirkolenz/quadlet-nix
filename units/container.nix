@@ -41,7 +41,10 @@
       kind = "container";
       longRunning = true;
       serviceName = lib.defaultTo "${config.name}" (config.containerConfig.ServiceName or null);
-      podmanName = lib.defaultTo "systemd-${config.name}" (config.containerConfig.ContainerName or null);
+      # Quadlet names the container after the service, as `systemd-%N`.
+      podmanName = lib.defaultTo "systemd-${config.serviceName}" (
+        config.containerConfig.ContainerName or null
+      );
       containerConfig = lib.mkMerge [
         (lib.mkIf (config.imageFile != null) {
           Image = "localhost/${config.imageFile.imageName}:${config.imageFile.imageTag}";

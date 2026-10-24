@@ -15,7 +15,10 @@
     kind = "kube";
     longRunning = true;
     serviceName = lib.defaultTo "${config.name}" (config.kubeConfig.ServiceName or null);
-    podmanName = "systemd-${config.name}";
+    # The objects are named in the YAML files, which `podman kube down` takes.
+    podmanName = lib.mapNullable (yaml: lib.concatStringsSep " " (lib.toList yaml)) (
+      config.kubeConfig.Yaml or null
+    );
 
     finalConfig.Kube = config.kubeConfig;
   };
