@@ -90,8 +90,8 @@
       description = "The systemd service configuration";
     };
     installConfig = lib'.mkSectionOption {
-      internal = true; # no longer needed, but kept for compatibility
-      description = "The systemd install configuration";
+      internal = true;
+      description = "Deprecated, use `wantedBy`, `requiredBy`, `upheldBy` and `aliases` instead";
     };
     quadletConfig = lib'.mkQuadletSectionOption {
       anchor = "quadlet-section-quadlet";

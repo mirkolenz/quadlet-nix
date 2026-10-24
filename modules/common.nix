@@ -120,5 +120,9 @@ in
       assertion = obj.imageFile == null || obj.imageStream == null;
       message = "Only one of imageFile and imageStream can be set for container ${obj.name}";
     }) (lib.attrValues cfg.containers));
+    warnings = map (
+      obj:
+      "virtualisation.quadlet: `installConfig` of ${obj.ref} is deprecated. Use `wantedBy`, `requiredBy`, `upheldBy` and `aliases` instead."
+    ) (lib.filter (obj: obj.installConfig != { }) cfg.allObjects);
   };
 }
