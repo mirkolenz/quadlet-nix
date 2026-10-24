@@ -42,8 +42,8 @@ in
       };
       package = lib.mkOption {
         type = types.package;
-        default = pkgs.callPackage ../pkgs/quadlet.nix { inherit (cfg) podman; };
-        defaultText = lib.literalExpression "pkgs.callPackage ./pkgs/quadlet.nix { }";
+        default = pkgs.callPackage ../pkgs/quadlet/package.nix { inherit (cfg) podman; };
+        defaultText = lib.literalExpression "pkgs.callPackage ./pkgs/quadlet/package.nix { }";
         description = "The package providing the `quadlet` generator executable";
       };
       autoUpdate = {
@@ -60,8 +60,8 @@ in
         };
         package = lib.mkOption {
           type = types.package;
-          default = pkgs.callPackage ../pkgs/quadletctl.nix { inherit (cfg) podman; };
-          defaultText = lib.literalExpression "pkgs.callPackage ./pkgs/quadletctl.nix { }";
+          default = pkgs.callPackage ../pkgs/quadletctl/package.nix { inherit (cfg) podman; };
+          defaultText = lib.literalExpression "pkgs.callPackage ./pkgs/quadletctl/package.nix { }";
           description = "The package providing the `quadletctl` executable";
         };
         units = lib.mkOption {

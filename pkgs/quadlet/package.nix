@@ -9,7 +9,7 @@ buildGoModule {
   subPackages = [ "cmd/quadlet" ];
   # Go map iteration makes generated flags nondeterministic, so sort the maps
   # to prevent spurious unit changes and service restarts.
-  patches = [ ./patches/quadlet-sorted-flags.patch ];
+  patches = [ ./sorted-flags.patch ];
   # The upstream command test does not exercise generated unit ordering.
   doCheck = false;
   env.CGO_ENABLED = 0;

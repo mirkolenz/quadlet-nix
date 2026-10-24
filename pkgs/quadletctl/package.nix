@@ -9,7 +9,7 @@
 writeShellApplication {
   name = "quadletctl";
   # The modules install the table of their units, so the package does not depend on them.
-  text = lib.readFile ./quadletctl.sh;
+  text = lib.readFile ./script.sh;
   runtimeInputs = [
     argc
     podman
