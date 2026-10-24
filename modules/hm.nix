@@ -9,7 +9,7 @@ let
   inherit (lib) types;
 
   cfg = config.virtualisation.quadlet;
-  podman = osConfig.virtualisation.podman.package or pkgs.podman;
+  podman = config.services.podman.package;
   lib' = import ../lib.nix lib;
 
   mkSubmodule =
@@ -53,30 +53,6 @@ let
     in
     map mkEntry ([ service ] ++ obj.aliases ++ depPaths);
 
-  autoUpdate = import ./update.nix {
-    inherit lib podman;
-    inherit (cfg.autoUpdate) startAt;
-  };
-
-  autoUpdateService = lib.mkIf cfg.autoUpdate.enable {
-    Service = autoUpdate.serviceConfig // {
-      ExecStart = autoUpdate.script;
-    };
-    Unit = autoUpdate.unitConfig // {
-      Description = autoUpdate.description;
-      Wants = autoUpdate.wants;
-      After = autoUpdate.after;
-    };
-  };
-
-  autoUpdateTimer = lib.mkIf cfg.autoUpdate.enable {
-    Unit.Description = "Quadlet auto-update timer";
-    Timer = {
-      OnCalendar = cfg.autoUpdate.startAt;
-      Persistent = true;
-    };
-    Install.WantedBy = [ "timers.target" ];
-  };
 in
 {
   imports = [ ./common.nix ];
@@ -126,6 +102,16 @@ in
   };
 
   config = lib.mkIf (cfg.enable && cfg.allObjects != [ ]) {
+    services.podman = {
+      enable = true;
+      package = lib.mkDefault (osConfig.virtualisation.podman.package or pkgs.podman);
+      # Opt-in like on NixOS, although Home Manager enables it by default.
+      autoUpdate = {
+        enable = lib.mkDefault cfg.autoUpdate.enable;
+        onCalendar = lib.mkDefault cfg.autoUpdate.startAt;
+      };
+    };
+
     virtualisation.quadlet.podman = podman;
     virtualisation.quadlet.generatedUnits = lib.singleton unitPackage;
 
@@ -136,8 +122,5 @@ in
       };
 
     home.packages = lib.mkIf cfg.quadletctl.enable [ cfg.quadletctl.package ];
-
-    systemd.user.services.quadlet-auto-update = autoUpdateService;
-    systemd.user.timers.quadlet-auto-update = autoUpdateTimer;
   };
 }

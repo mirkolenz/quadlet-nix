@@ -33,6 +33,10 @@
           home.stateVersion = "24.11";
           virtualisation.quadlet = {
             enable = true;
+            autoUpdate = {
+              enable = true;
+              startAt = "weekly";
+            };
             containers = {
               nginx = {
                 containerConfig = {
@@ -82,5 +86,9 @@
       assert 'nginx' in machine.succeed("curl http://127.0.0.1:8081").lower()
 
       machine.succeed("sudo -H -u ${user.name} XDG_RUNTIME_DIR=/run/user/${toString user.uid} ${home.virtualisation.quadlet.quadletctl.package}/bin/quadletctl systemctl is-active ${containers.nginx.serviceName} --quiet")
+
+      # Podman's own auto-update timer, at the configured schedule.
+      timer = machine.get_unit_property("podman-auto-update.timer", "TimersCalendar", "${user.name}")
+      assert "Mon *-*-* 00:00:00" in timer, f"unexpected schedule: {timer}"
     '';
 }

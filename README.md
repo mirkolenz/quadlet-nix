@@ -37,6 +37,7 @@ You can get started with the following minimal configuration:
 
 All available options are described in the [documentation](https://mirkolenz.github.io/quadlet-nix/index.html).
 You may also want to take a look at the [tests](https://github.com/mirkolenz/quadlet-nix/blob/main/dev/tests/nixos.nix) for more examples.
+Once there are units, the NixOS module enables `virtualisation.podman` and the Home Manager module enables `services.podman`, whose `package` both use for generating the units.
 
 ## Rootless units
 
@@ -106,6 +107,15 @@ containerConfig.Environment = lib.mkMerge [
 
 All other values are written into the unit file verbatim.
 Whitespace and other special characters are handled by Quadlet itself when it builds the resulting `ExecStart=` line, so no additional quoting is required.
+
+## Updates and pruning
+
+`autoUpdate.enable` enables the `podman-auto-update` timer that Podman ships, scheduled at `autoUpdate.startAt`.
+It updates and restarts the containers labeled with `AutoUpdate=`, and then prunes dangling images.
+On NixOS, a user manager only runs it for the owners of rootless units.
+With Home Manager, it configures `services.podman.autoUpdate`.
+
+Pruning is left to Podman and NixOS as well: besides the prune of every auto-update, `virtualisation.podman.autoPrune.enable` prunes the rootful storage on a schedule.
 
 ## Restart and rate-limit defaults
 

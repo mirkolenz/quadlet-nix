@@ -47,11 +47,14 @@ in
         description = "The package providing the `quadlet` generator executable";
       };
       autoUpdate = {
-        enable = lib.mkEnableOption "quadlet auto update";
+        enable = lib.mkEnableOption ''
+          the `podman-auto-update` timer that Podman ships, which updates the containers labeled with `AutoUpdate=` and then prunes dangling images.
+          On NixOS, a user manager runs it only for the owners of rootless units.
+          With Home Manager, it configures `services.podman.autoUpdate`'';
         startAt = lib.mkOption {
           type = types.str;
           default = "*-*-* 00:00:00";
-          description = "The time to start the auto update";
+          description = "The `OnCalendar=` schedule of the auto update";
         };
       };
       quadletctl = {

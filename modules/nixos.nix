@@ -8,7 +8,7 @@ let
   inherit (lib) types;
 
   cfg = config.virtualisation.quadlet;
-  podman = config.virtualisation.podman.package or pkgs.podman;
+  podman = config.virtualisation.podman.package;
   lib' = import ../lib.nix lib;
 
   mkSubmodule =
@@ -32,15 +32,19 @@ let
   rootlessObjectsByOwner = removeAttrs objectsByOwner [ "system" ];
   rootlessObjects = lib.concatLists (lib.attrValues rootlessObjectsByOwner);
 
-  mkAutoUpdate =
-    conditionUsers:
-    import ./update.nix {
-      inherit
-        lib
-        podman
-        conditionUsers
-        ;
-      inherit (cfg.autoUpdate) startAt;
+  # Enables the auto-update timer that Podman ships, scheduled at `startAt`
+  # and, in user managers, limited to the owners of rootless objects.
+  autoUpdateTimer =
+    objects: users:
+    lib.mkIf (cfg.autoUpdate.enable && objects != [ ]) {
+      wantedBy = [ "timers.target" ];
+      overrideStrategy = "asDropin";
+      timerConfig.OnCalendar = [
+        ""
+        cfg.autoUpdate.startAt
+      ];
+      # Repeated triggering conditions implement OR semantics across users.
+      unitConfig.ConditionUser = map (user: "|${user}") users;
     };
 
   mkServiceOverride =
@@ -65,13 +69,6 @@ let
     }
   ) objectsByOwner;
 
-  rootfulOverrides = lib.genAttrs' rootfulObjects mkServiceOverride;
-  rootlessOverrides = lib.genAttrs' rootlessObjects mkServiceOverride;
-
-  rootfulAutoUpdate = lib.mkIf (cfg.autoUpdate.enable && rootfulObjects != [ ]) (mkAutoUpdate null);
-  rootlessAutoUpdate = lib.mkIf (cfg.autoUpdate.enable && rootlessObjects != [ ]) (
-    mkAutoUpdate (lib.attrNames rootlessObjectsByOwner)
-  );
 in
 {
   imports = [ ./common.nix ];
@@ -133,14 +130,12 @@ in
       etc."xdg/quadletctl/units.tsv".text = cfg.quadletctl.units;
     };
 
-    systemd.services = lib.mkMerge [
-      rootfulOverrides
-      { quadlet-auto-update = rootfulAutoUpdate; }
-    ];
+    systemd.services = lib.genAttrs' rootfulObjects mkServiceOverride;
+    systemd.user.services = lib.genAttrs' rootlessObjects mkServiceOverride;
 
-    systemd.user.services = lib.mkMerge [
-      rootlessOverrides
-      { quadlet-auto-update = rootlessAutoUpdate; }
-    ];
+    systemd.timers.podman-auto-update = autoUpdateTimer rootfulObjects [ ];
+    systemd.user.timers.podman-auto-update = autoUpdateTimer rootlessObjects (
+      lib.attrNames rootlessObjectsByOwner
+    );
   };
 }
