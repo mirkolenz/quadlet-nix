@@ -104,10 +104,32 @@ in
       };
       uidScopeUnits = uidScope.virtualisation.quadlet.containers;
 
-      # Quadlet names a container after its service.
-      podmanNames =
+      # Deprecated options keep working and only warn. `autoUpdate` enables
+      # Podman's own timer.
+      deprecated = evalQuadlet inputs.nixpkgs {
+        autoUpdate.enable = true;
+        containers.web = {
+          imageStream = pkgs.dockerTools.streamLayeredImage { name = "web"; };
+          installConfig.WantedBy = "default.target";
+        };
+      };
+
+      # One Nix-built image loaded for two containers, one of them a oneshot
+      # like the kube.
+      nixImage =
         (evalQuadlet inputs.nixpkgs {
-          containers.web.containerConfig.ServiceName = "renamed";
+          images.web.package = pkgs.dockerTools.streamLayeredImage { name = "web"; };
+          containers.web.containerConfig.Image = "web.image";
+          containers.job = {
+            containerConfig.Image = "web.image";
+            serviceConfig.Type = "oneshot";
+          };
+          containers.direct.imagePackage = pkgs.dockerTools.streamLayeredImage { name = "direct"; };
+          containers.renamed.containerConfig.ServiceName = "service";
+          kubes.job = {
+            kubeConfig.Yaml = "job.yaml";
+            serviceConfig.Type = "oneshot";
+          };
         }).virtualisation.quadlet;
 
       mkUnits =
@@ -225,8 +247,39 @@ in
           && lib.hasInfix "ConditionUser=1000" uidScopeUnits.rootless.text
           && !lib.hasInfix "ConditionUser" uidScopeUnits.rootful.text
         );
+        # The image unit loads the Nix-built image under its own tag, which the
+        # pull then finds. A oneshot keeps systemd's restart defaults.
+        nix-image = mkBoolCheck "quadlet-nix-image" (
+          lib.all (lib.flip lib.hasInfix nixImage.images.web.text) [
+            "Image=localhost/quadlet-nix/web:"
+            "Policy=missing"
+            "quadlet-nix-image-load"
+          ]
+          && lib.hasPrefix "localhost/quadlet-nix/web:" nixImage.images.web.podmanName
+          # A container loads its image package itself, with the same script.
+          && lib.all (lib.flip lib.hasInfix nixImage.containers.direct.text) [
+            "Image=localhost/quadlet-nix/direct:"
+            "quadlet-nix-image-load"
+          ]
+          # No registry provides a Nix-built image to auto-update from.
+          && lib.all (unit: lib.hasInfix "AutoUpdate=disabled" unit.text) [
+            nixImage.containers.direct
+            nixImage.containers.web
+          ]
+          && lib.hasInfix "Restart=on-failure" nixImage.containers.web.text
+          && lib.all (unit: !lib.hasInfix "Restart=" unit.text && !unit.autoStart) [
+            nixImage.containers.job
+            nixImage.kubes.job
+          ]
+        );
+        # Quadlet names a container after its service.
         podman-names = mkBoolCheck "quadlet-podman-names" (
-          podmanNames.containers.web.podmanName == "systemd-renamed"
+          nixImage.containers.renamed.podmanName == "systemd-service"
+        );
+        deprecated-options = mkBoolCheck "quadlet-deprecated-options" (
+          deprecated.systemd.timers.podman-auto-update.wantedBy == [ "timers.target" ]
+          && lib.length (lib.filter (lib.hasInfix "deprecated") deprecated.warnings) == 2
+          && lib.hasInfix "Image=localhost/quadlet-nix/web:" deprecated.virtualisation.quadlet.containers.web.text
         );
         nixos = pkgs.testers.runNixOSTest {
           name = "nixos";

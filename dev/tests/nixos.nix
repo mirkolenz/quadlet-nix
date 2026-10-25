@@ -30,7 +30,13 @@
         };
       };
       virtualisation.quadlet = {
+        autoUpdate.enable = true;
+        images.nginx.package = pkgs.dockerTools.examples.nginxStream;
         containers = {
+          nginx-shared.containerConfig = {
+            Image = config.virtualisation.quadlet.images.nginx.ref;
+            PublishPort = [ "8086:80" ];
+          };
           nginx = {
             containerConfig = {
               Image = "docker-archive:${pkgs.dockerTools.examples.nginx}";
@@ -40,11 +46,10 @@
               };
             };
           };
+          # Loads the same build as the image unit, concurrently.
           nginx-image-stream = {
-            imageStream = pkgs.dockerTools.examples.nginxStream;
-            containerConfig = {
-              PublishPort = [ "8081:80" ];
-            };
+            imagePackage = pkgs.dockerTools.examples.nginxStream;
+            containerConfig.PublishPort = [ "8081:80" ];
           };
           nginx-rootless = {
             uid = config.users.users.quadlet.uid;
@@ -60,6 +65,7 @@
     { nodes }:
     let
       containers = nodes.machine.virtualisation.quadlet.containers;
+      images = nodes.machine.virtualisation.quadlet.images;
       user = nodes.machine.users.users.quadlet;
     in
     ''
@@ -86,19 +92,20 @@
       machine.wait_for_unit("multi-user.target")
 
       machine.wait_for_unit("${containers.nginx.serviceName}.service")
+      machine.wait_for_unit("${containers.nginx-shared.serviceName}.service")
       assert 'nginx' in machine.succeed("curl http://127.0.0.1:8080").lower()
       containers = json.loads(machine.succeed("podman ps --format json"))
-      assert len(containers) == 2, f"Expected 2 system containers, got: {len(containers)}"
+      assert len(containers) == 3, f"Expected 3 system containers, got: {len(containers)}"
 
       machine.stop_job("${containers.nginx.serviceName}.service")
       machine.fail("curl http://127.0.0.1:8080")
       containers = json.loads(machine.succeed("podman ps --format json"))
-      assert len(containers) == 1, f"Expected 1 system container, got: {len(containers)}"
+      assert len(containers) == 2, f"Expected 2 system containers, got: {len(containers)}"
 
       machine.start_job("${containers.nginx.serviceName}.service")
       assert 'nginx' in machine.succeed("curl http://127.0.0.1:8080").lower()
       containers = json.loads(machine.succeed("podman ps --format json"))
-      assert len(containers) == 2, f"Expected 2 system containers, got: {len(containers)}"
+      assert len(containers) == 3, f"Expected 3 system containers, got: {len(containers)}"
 
       machine.wait_for_unit("${containers.nginx-image-stream.serviceName}.service")
       assert 'nginx' in machine.succeed("curl http://127.0.0.1:8081").lower()
@@ -117,20 +124,34 @@
       machine.fail("quadletctl podman ${containers.nginx-rootless.serviceName} exec ${containers.nginx-rootless.podmanName} false")
       machine.wait_until_succeeds("quadletctl journalctl ${containers.nginx-rootless.serviceName} --no-pager | grep -q 'GET /'")
 
+      # The image unit and `nginx-image-stream` load the same build concurrently
+      # at boot, so either of them may have done it.
+      def loads():
+          return machine.succeed("journalctl -u ${images.nginx.serviceName}.service | grep -c 'Writing manifest'").strip()
+
+      nix_image_services = ["${containers.nginx-shared.serviceName}.service", "${containers.nginx-image-stream.serviceName}.service"]
+      assert 'nginx' in machine.succeed("curl http://127.0.0.1:8086").lower()
+      booted = loads()
+
+      # A restarted image unit skips the load while the build is present.
+      machine.succeed("systemctl restart ${images.nginx.serviceName}.service")
+      machine.wait_for_unit("${containers.nginx-shared.serviceName}.service")
+      assert loads() == booted, f"unexpected number of loads: {loads()}"
+
       running = snapshot()
 
       machine.succeed("${nodes.machine.system.build.toplevel}/specialisation/one/bin/switch-to-configuration test")
       machine.wait_for_unit("default.target", "${user.name}")
       assert 'nginx' in machine.succeed("curl http://127.0.0.1:8085").lower()
       containers = json.loads(machine.succeed("podman ps --format json"))
-      assert len(containers) == 3, f"Expected 3 system containers, got: {len(containers)}"
+      assert len(containers) == 4, f"Expected 4 system containers, got: {len(containers)}"
       running = check_untouched(running, "Adding a container")
 
       machine.succeed("${nodes.machine.system.build.toplevel}/bin/switch-to-configuration test")
       machine.wait_for_unit("default.target", "${user.name}")
       machine.fail("curl http://127.0.0.1:8083")
       containers = json.loads(machine.succeed("podman ps --format json"))
-      assert len(containers) == 2, f"Expected 2 system containers, got: {len(containers)}"
+      assert len(containers) == 3, f"Expected 3 system containers, got: {len(containers)}"
       running = check_untouched(running, "Removing a container")
 
       reload_env_check = "quadletctl podman ${containers.nginx-rootless.serviceName} inspect ${containers.nginx-rootless.podmanName} --format '{{range .Config.Env}}{{println .}}{{end}}' | grep -qx QUADLET_RELOAD_TEST=reloaded"

@@ -33,7 +33,7 @@
     ref = lib.mkOption {
       readOnly = true;
       type = lib.types.str;
-      description = "The reference of the podman object (i.e., the filename)";
+      description = "The Quadlet file name, such as `web.image`, through which other units reference this one (e.g., `Image=`, `Network=`, `Volume=` or `Pod=`)";
     };
     text = lib.mkOption {
       readOnly = true;

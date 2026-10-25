@@ -18,15 +18,14 @@ You can get started with the following minimal configuration:
       system = "x86_64-linux";
       modules = [
         quadlet-nix.nixosModules.default
-        ({ pkgs, ... }: {
+        ({ pkgs, config, ... }: {
           virtualisation.quadlet.enable = true;
+          virtualisation.quadlet.images.nginx.package = pkgs.dockerTools.examples.nginxStream;
           virtualisation.quadlet.containers = {
             hello-world = {
               containerConfig.Image = "docker.io/library/hello-world:latest";
             };
-            nginx = {
-              imageStream = pkgs.dockerTools.examples.nginxStream;
-            };
+            nginx.containerConfig.Image = config.virtualisation.quadlet.images.nginx.ref;
           };
         })
       ];
@@ -108,6 +107,37 @@ containerConfig.Environment = lib.mkMerge [
 All other values are written into the unit file verbatim.
 Whitespace and other special characters are handled by Quadlet itself when it builds the resulting `ExecStart=` line, so no additional quoting is required.
 
+## Nix-built images
+
+A container with an `imagePackage`, an archive (e.g., `pkgs.dockerTools.buildLayeredImage`) or a stream (e.g., `pkgs.dockerTools.streamLayeredImage`), runs that image instead of pulling one:
+
+```nix
+virtualisation.quadlet.containers.web.imagePackage = pkgs.dockerTools.examples.nginxStream;
+```
+
+An entry of `images` takes the same image as its `package`, so other units can reference the image through Quadlet's `Image=<name>.image`, best spelled as its read-only `ref` so a typo fails evaluation:
+
+```nix
+virtualisation.quadlet = {
+  images.web.package = pkgs.dockerTools.examples.nginxStream;
+  containers.web.containerConfig.Image = config.virtualisation.quadlet.images.web.ref;
+  volumes.web-content.volumeConfig = {
+    Driver = "image";
+    Image = config.virtualisation.quadlet.images.web.ref;
+  };
+};
+```
+
+Either way, the image is loaded before the unit starts unless this build is already present.
+Podman stores it as `localhost/quadlet-nix/<imageName>:<hash>`, the `podmanName` of an image unit.
+It is copied there with `skopeo`, which reads the same `storage.conf` as Podman, but not storage flags such as `--root` in `GlobalArgs=`, so configure a custom storage location in `storage.conf` instead.
+The hash of its store path tells the builds apart, even when they set a fixed tag such as `latest`.
+A container running such an image gets `AutoUpdate=disabled`, since no registry provides it, and is updated by rebuilding instead.
+
+`imagePackage` is a shortcut for an image that a single container uses.
+An image shared by several units belongs in `images`, so that it is loaded once.
+The container options `imageFile` and `imageStream` are deprecated in favor of `imagePackage`.
+
 ## Updates and pruning
 
 `autoUpdate.enable` enables the `podman-auto-update` timer that Podman ships, scheduled at `autoUpdate.startAt`.
@@ -176,7 +206,7 @@ The clearest difference is where unit correctness is checked: this version valid
   Errors the generator would otherwise log and skip at boot become hard build failures, checked by the same tool that consumes the units instead of by option types that have to be kept in sync with upstream.
 - Rootless containers are supported directly from the NixOS module by setting a `uid` per object, Home Manager is not required.
   See [Rootless units](#rootless-units).
-- Container images can be supplied as Nix packages via `imageFile` (e.g., `pkgs.dockerTools.buildImage`) or `imageStream` (e.g., `pkgs.dockerTools.streamLayeredImage`).
+- Container images can be supplied as Nix packages (e.g., `pkgs.dockerTools.streamLayeredImage`) via the `package` option of an image unit.
 - Releases follow semantic versioning with version tags (e.g., `v1`) for stable pinning and the flake is structured with [flake-parts](https://flake.parts).
 - Long-running units (`.container`, `.kube`, `.pod`) ship with overridable restart and rate-limit settings.
 

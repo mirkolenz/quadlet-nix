@@ -11,6 +11,7 @@ let
   cfg = config.virtualisation.quadlet;
   podman = config.services.podman.package;
   lib' = import ../lib.nix lib;
+  nixImageLoad = lib'.mkNixImageLoad pkgs;
 
   mkSubmodule =
     path:
@@ -21,8 +22,8 @@ let
       ];
       owner = "user";
       _module.args = {
-        inherit lib' podman;
-        inherit (pkgs) writeShellApplication;
+        inherit lib' podman nixImageLoad;
+        inherit (cfg) images;
       };
     };
 

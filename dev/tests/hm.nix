@@ -28,7 +28,7 @@
         gid = 990;
       };
       home-manager.users.quadlet =
-        { pkgs, ... }:
+        { pkgs, config, ... }:
         {
           home.stateVersion = "24.11";
           virtualisation.quadlet = {
@@ -37,6 +37,7 @@
               enable = true;
               startAt = "weekly";
             };
+            images.nginx.package = pkgs.dockerTools.examples.nginxStream;
             containers = {
               nginx = {
                 containerConfig = {
@@ -45,8 +46,8 @@
                 };
               };
               nginx-image-stream = {
-                imageStream = pkgs.dockerTools.examples.nginxStream;
                 containerConfig = {
+                  Image = config.virtualisation.quadlet.images.nginx.ref;
                   PublishPort = [ "8081:80" ];
                 };
               };

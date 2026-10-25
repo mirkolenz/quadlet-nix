@@ -53,6 +53,38 @@ lib: rec {
 
   quadletDocsUrl = "https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html";
 
+  # Podman stores a Nix-built image in a namespace of its own, tagged with a
+  # hash of its store path, so that a fixed tag such as `latest` cannot hide a
+  # new build. The hash carries no string context, since only the load step
+  # needs the image built.
+  nixImageReference =
+    image: "localhost/quadlet-nix/${image.imageName}:${lib.hashString "sha256" image.outPath}";
+
+  # The `ExecStartPre=` running the load script for the Nix-built `image`.
+  mkNixImageLoad =
+    pkgs:
+    let
+      script = lib.getExe (pkgs.callPackage ./pkgs/nix-image-load/package.nix { });
+    in
+    image:
+    lib.escapeShellArgs [
+      script
+      (nixImageReference image)
+      "${image}"
+    ];
+
+  mkNixImageOption =
+    description:
+    lib.mkOption {
+      type = with lib.types; nullOr package;
+      default = null;
+      example = lib.literalExpression "pkgs.dockerTools.streamLayeredImage { name = \"web\"; }";
+      description = ''
+        ${description}, either an archive (e.g., `pkgs.dockerTools.buildLayeredImage`) or a stream (e.g., `pkgs.dockerTools.streamLayeredImage`).
+        It is only loaded unless this build is already present.
+      '';
+    };
+
   # A freeform section whose description links to the matching upstream Quadlet
   # documentation, so users discover the available keys upstream instead of in
   # declarations we would have to maintain. `anchor` is the id of the section's
