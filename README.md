@@ -105,7 +105,8 @@ containerConfig.Environment = lib.mkMerge [
 ```
 
 All other values are written into the unit file verbatim.
-Whitespace and other special characters are handled by Quadlet itself when it builds the resulting `ExecStart=` line, so no additional quoting is required.
+Whitespace and quotes are handled by Quadlet itself when it builds the resulting `ExecStart=` line, so no additional quoting is required.
+systemd still expands specifiers and variables in it, so write a literal `%` as `%%` and a literal `$` as `$$`.
 
 ## Nix-built images
 
@@ -163,7 +164,7 @@ Any value set in `serviceConfig` or `unitConfig` takes precedence, and a contain
 | `Restart`                                   | `on-failure` | Systemd's `no` means containers don't auto-restart at all.                         |
 | `RestartSec`                                | `5s`         | Systemd's `100ms` paired with `Restart=` produces millisecond-scale restart loops. |
 | `TimeoutStartSec`                           | `900s`       | Systemd's `90s` is often too short for image pulls or cold-start workloads.        |
-| `StartLimitBurst` / `StartLimitIntervalSec` | `3` / `600s` | Hard-fail after 3 restarts in 10 minutes so a broken unit doesn't loop forever.    |
+| `StartLimitBurst` / `StartLimitIntervalSec` | `3` / `600s` | Refuse a 4th start within 10 minutes so a broken unit doesn't loop forever.        |
 
 The burst limit only fires when `(TimeoutStartSec + RestartSec) × StartLimitBurst ≤ StartLimitIntervalSec`, which holds for typical fast-starting services.
 A unit that consistently hangs all the way to `TimeoutStartSec` will retry indefinitely because each attempt falls outside the rate-limit window.
