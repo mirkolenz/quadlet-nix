@@ -33,53 +33,31 @@ let
   rootlessObjectsByOwner = removeAttrs objectsByOwner [ "system" ];
   rootlessObjects = lib.concatLists (lib.attrValues rootlessObjectsByOwner);
 
-  rootlessOwners = lib.attrNames rootlessObjectsByOwner;
-  imagePrune = lib'.mkImagePrune podman;
+  # Maps the sections of a unit, such as `Service`, onto `serviceConfig`, ...
+  toNixosUnit = lib.mapAttrs' (section: lib.nameValuePair "${lib.toLower section}Config");
 
-  # A timer of the `objects` in one manager, which in user managers only fires
-  # for the owners of rootless objects.
-  mkTimer =
-    enable: objects: users: timer:
-    lib.mkIf (enable && objects != [ ]) (
-      timer
-      // {
-        wantedBy = [ "timers.target" ];
-        # Repeated triggering conditions implement OR semantics across users.
-        unitConfig.ConditionUser = map (user: "|${user}") users;
-      }
-    );
-
-  # Podman ships the auto-update timer, whose schedule this replaces.
-  autoUpdateTimer =
-    objects: users:
-    mkTimer cfg.autoUpdate.enable objects users {
-      overrideStrategy = "asDropin";
-      timerConfig.OnCalendar = [
-        ""
-        cfg.autoUpdate.startAt
-      ];
-    };
-
-  imagePruneTimer =
-    objects: users:
-    mkTimer cfg.autoPrune.enable objects users {
-      timerConfig = {
-        OnCalendar = cfg.autoPrune.startAt;
-        Persistent = true;
-      };
-    };
-
-  # Runs after the units have started, so that a missed run does not remove
-  # the images of units that are about to start at boot.
-  imagePruneService =
-    objects: target:
-    lib.mkIf (cfg.autoPrune.enable && objects != [ ]) {
-      inherit (imagePrune) description;
-      after = [ target ];
-      serviceConfig = {
-        Type = "oneshot";
-        ExecStart = imagePrune.command;
-      };
+  # The units of the `objects` in one manager, whose timers in user managers
+  # only fire for the owners of rootless objects.
+  mkManagerUnits =
+    objects: users: target:
+    let
+      units = lib'.mkMaintenanceUnits cfg podman target;
+    in
+    lib.mkIf (objects != [ ]) {
+      services =
+        lib.genAttrs' objects mkServiceOverride
+        // lib.mapAttrs (_: toNixosUnit) units.services
+        // lib.mapAttrs (
+          _: dropin: toNixosUnit dropin // { overrideStrategy = "asDropin"; }
+        ) units.serviceDropins;
+      # Repeated triggering conditions implement OR semantics across users.
+      timers = lib.mapAttrs (
+        _: timer:
+        toNixosUnit (lib.recursiveUpdate timer { Unit.ConditionUser = map (user: "|${user}") users; })
+        // {
+          wantedBy = [ "timers.target" ];
+        }
+      ) units.timers;
     };
 
   mkServiceOverride =
@@ -103,7 +81,6 @@ let
       name = "quadlet-package-${owner}";
     }
   ) objectsByOwner;
-
 in
 {
   imports = [ ./common.nix ];
@@ -158,24 +135,15 @@ in
     virtualisation.quadlet.podman = podman;
     virtualisation.quadlet.generatedUnits = unitPackages;
 
-    systemd.packages = unitPackages;
-
     environment = lib.mkIf cfg.quadletctl.enable {
       systemPackages = [ cfg.quadletctl.package ];
       etc."xdg/quadletctl/units.tsv".text = cfg.quadletctl.units;
     };
 
-    systemd.services = lib.genAttrs' rootfulObjects mkServiceOverride // {
-      quadlet-image-prune = imagePruneService rootfulObjects "multi-user.target";
-    };
-    systemd.user.services = lib.genAttrs' rootlessObjects mkServiceOverride // {
-      quadlet-image-prune = imagePruneService rootlessObjects "default.target";
-    };
-
-    systemd.timers.podman-auto-update = autoUpdateTimer rootfulObjects [ ];
-    systemd.user.timers.podman-auto-update = autoUpdateTimer rootlessObjects rootlessOwners;
-
-    systemd.timers.quadlet-image-prune = imagePruneTimer rootfulObjects [ ];
-    systemd.user.timers.quadlet-image-prune = imagePruneTimer rootlessObjects rootlessOwners;
+    systemd = lib.mkMerge [
+      { packages = unitPackages; }
+      (mkManagerUnits rootfulObjects [ ] "multi-user.target")
+      { user = mkManagerUnits rootlessObjects (lib.attrNames rootlessObjectsByOwner) "default.target"; }
+    ];
   };
 }

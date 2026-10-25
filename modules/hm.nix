@@ -11,7 +11,7 @@ let
   cfg = config.virtualisation.quadlet;
   podman = config.services.podman.package;
   lib' = import ../lib.nix lib;
-  imagePrune = lib'.mkImagePrune podman;
+  units = lib'.mkMaintenanceUnits cfg podman "default.target";
   nixImageLoad = lib'.mkNixImageLoad pkgs;
 
   mkSubmodule =
@@ -54,7 +54,6 @@ let
       );
     in
     map mkEntry ([ service ] ++ obj.aliases ++ depPaths);
-
 in
 {
   imports = [ ./common.nix ];
@@ -107,11 +106,13 @@ in
     services.podman = {
       enable = true;
       package = lib.mkDefault (osConfig.virtualisation.podman.package or pkgs.podman);
-      # Opt-in like on NixOS, although Home Manager enables it by default.
-      autoUpdate = {
-        enable = lib.mkDefault cfg.autoUpdate.enable;
-        onCalendar = lib.mkDefault cfg.autoUpdate.startAt;
-      };
+      # Opt-in like ours, with which it conflicts.
+      autoUpdate.enable = lib.mkDefault false;
+    };
+
+    assertions = lib.singleton {
+      assertion = !(cfg.autoUpdate.enable && config.services.podman.autoUpdate.enable);
+      message = "`virtualisation.quadlet.autoUpdate.enable` and `services.podman.autoUpdate.enable` both define `podman-auto-update.service`, enable only one of them.";
     };
 
     virtualisation.quadlet.podman = podman;
@@ -119,33 +120,21 @@ in
 
     xdg.configFile =
       lib.listToAttrs (lib.concatMap mkObjectConfigEntries cfg.allObjects)
+      # The services that Podman ships are not in the unit search path
+      # unless Podman is installed system-wide.
+      // lib.concatMapAttrs (name: dropin: {
+        "systemd/user/${name}.service".source = "${podman}/lib/systemd/user/${name}.service";
+        "systemd/user/${name}.service.d/quadlet.conf".text = lib'.mkUnitText dropin;
+      }) units.serviceDropins
       // lib.optionalAttrs cfg.quadletctl.enable {
         "quadletctl/units.tsv".text = cfg.quadletctl.units;
       };
 
     home.packages = lib.mkIf cfg.quadletctl.enable [ cfg.quadletctl.package ];
 
-    # Runs after the units have started, so that a missed run does not remove
-    # the images of units that are about to start at login.
-    systemd.user = lib.mkIf cfg.autoPrune.enable {
-      services.quadlet-image-prune = {
-        Unit = {
-          Description = imagePrune.description;
-          After = [ "default.target" ];
-        };
-        Service = {
-          Type = "oneshot";
-          ExecStart = imagePrune.command;
-        };
-      };
-      timers.quadlet-image-prune = {
-        Unit.Description = imagePrune.description;
-        Timer = {
-          OnCalendar = cfg.autoPrune.startAt;
-          Persistent = true;
-        };
-        Install.WantedBy = [ "timers.target" ];
-      };
+    systemd.user = {
+      inherit (units) services;
+      timers = lib.mapAttrs (_: timer: timer // { Install.WantedBy = [ "timers.target" ]; }) units.timers;
     };
   };
 }

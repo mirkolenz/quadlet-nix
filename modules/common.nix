@@ -47,9 +47,8 @@ in
       };
       autoUpdate = {
         enable = lib.mkEnableOption ''
-          the `podman-auto-update` timer that Podman ships, which updates the containers labeled with `AutoUpdate=` and then prunes dangling images.
-          On NixOS, a user manager runs it only for the owners of rootless units.
-          With Home Manager, it configures `services.podman.autoUpdate`'';
+          the `quadlet-auto-update` timer, which runs the `podman-auto-update` service that Podman ships to update the containers labeled with `AutoUpdate=` and then prune dangling images.
+          On NixOS, a user manager runs it only for the owners of rootless units'';
         startAt = lib.mkOption {
           type = types.str;
           default = "*-*-* 00:00:00";

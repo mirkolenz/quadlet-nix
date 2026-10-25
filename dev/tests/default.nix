@@ -104,8 +104,7 @@ in
       };
       uidScopeUnits = uidScope.virtualisation.quadlet.containers;
 
-      # Deprecated options keep working and only warn. `autoUpdate` enables
-      # Podman's own timer.
+      # Deprecated options keep working and only warn. `autoUpdate` adds its timer.
       deprecated = evalQuadlet inputs.nixpkgs {
         autoUpdate.enable = true;
         containers.web = {
@@ -277,8 +276,8 @@ in
           nixImage.containers.renamed.podmanName == "systemd-service"
         );
         deprecated-options = mkBoolCheck "quadlet-deprecated-options" (
-          deprecated.systemd.timers.podman-auto-update.wantedBy == [ "timers.target" ]
-          && lib.length (lib.filter (lib.hasInfix "deprecated") deprecated.warnings) == 2
+          deprecated.systemd.timers.quadlet-auto-update.wantedBy == [ "timers.target" ]
+          && lib.count (lib.hasInfix "deprecated") deprecated.warnings == 2
           && lib.hasInfix "Image=localhost/quadlet-nix/web:" deprecated.virtualisation.quadlet.containers.web.text
         );
         nixos = pkgs.testers.runNixOSTest {
