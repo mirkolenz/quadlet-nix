@@ -73,6 +73,12 @@ lib: rec {
       "${image}"
     ];
 
+  # The unit of the `autoPrune` option.
+  mkImagePrune = podman: {
+    description = "Prune unused Podman images";
+    command = "${lib.getExe podman} image prune --all --force";
+  };
+
   mkNixImageOption =
     description:
     lib.mkOption {

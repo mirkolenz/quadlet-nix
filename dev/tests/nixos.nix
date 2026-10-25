@@ -29,8 +29,14 @@
           QUADLET_RELOAD_TEST = "reloaded";
         };
       };
+      # A previous build of the Nix-built image, which no container uses.
+      environment.etc."previous.tar".source = pkgs.dockerTools.buildImage {
+        name = "previous";
+        tag = "previous";
+      };
       virtualisation.quadlet = {
         autoUpdate.enable = true;
+        autoPrune.enable = true;
         images.nginx.package = pkgs.dockerTools.examples.nginxStream;
         containers = {
           nginx-shared.containerConfig = {
@@ -129,7 +135,6 @@
       def loads():
           return machine.succeed("journalctl -u ${images.nginx.serviceName}.service | grep -c 'Writing manifest'").strip()
 
-      nix_image_services = ["${containers.nginx-shared.serviceName}.service", "${containers.nginx-image-stream.serviceName}.service"]
       assert 'nginx' in machine.succeed("curl http://127.0.0.1:8086").lower()
       booted = loads()
 
@@ -137,6 +142,24 @@
       machine.succeed("systemctl restart ${images.nginx.serviceName}.service")
       machine.wait_for_unit("${containers.nginx-shared.serviceName}.service")
       assert loads() == booted, f"unexpected number of loads: {loads()}"
+
+      # Pruning removes the images that no container uses, such as a previous
+      # build, and the image of stopped units, which their next start loads
+      # again. The `nginx` container runs the same image from its archive.
+      machine.succeed("podman load -i /etc/previous.tar")
+      machine.succeed("systemctl is-active quadlet-image-prune.timer")
+      machine.succeed("systemctl start quadlet-image-prune.service")
+      machine.fail("podman image exists localhost/previous:previous")
+      machine.succeed("podman image exists ${images.nginx.podmanName}")
+      nginx_services = ["${containers.nginx-shared.serviceName}.service", "${containers.nginx-image-stream.serviceName}.service", "${containers.nginx.serviceName}.service"]
+      for service in nginx_services:
+          machine.stop_job(service)
+      machine.succeed("systemctl start quadlet-image-prune.service")
+      machine.fail("podman image exists ${images.nginx.podmanName}")
+      for service in nginx_services:
+          machine.start_job(service)
+      assert 'nginx' in machine.succeed("curl http://127.0.0.1:8086").lower()
+      assert 'nginx' in machine.succeed("curl http://127.0.0.1:8081").lower()
 
       running = snapshot()
 

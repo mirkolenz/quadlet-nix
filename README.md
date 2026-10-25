@@ -146,7 +146,10 @@ It updates and restarts the containers labeled with `AutoUpdate=`, and then prun
 On NixOS, a user manager only runs it for the owners of rootless units.
 With Home Manager, it configures `services.podman.autoUpdate`.
 
-Pruning is left to Podman and NixOS as well: besides the prune of every auto-update, `virtualisation.podman.autoPrune.enable` prunes the rootful storage on a schedule.
+Previous versions of an image stay tagged, both pulled ones such as `v2.1` after switching to `v3.0` and previous Nix builds, so the prune of every auto-update keeps them.
+`autoPrune.enable` adds the `quadlet-image-prune` timer, scheduled at `autoPrune.startAt`, which removes every image that no container uses with `podman image prune --all`.
+Unlike `virtualisation.podman.autoPrune` with `--all`, it covers rootless owners and Home Manager, and leaves alone the networks of Quadlet units, which `podman system prune` would remove.
+As with any such prune, the image of a stopped unit is pulled or loaded again when it starts.
 
 ## Resource units
 

@@ -57,6 +57,17 @@ in
           description = "The `OnCalendar=` schedule of the auto update";
         };
       };
+      autoPrune = {
+        enable = lib.mkEnableOption ''
+          a timer that removes every image that no container uses, such as previous versions and builds.
+          Unlike `podman system prune`, it leaves alone the networks of Quadlet units.
+          The image of a stopped unit is pulled or loaded again when it starts'';
+        startAt = lib.mkOption {
+          type = types.str;
+          default = "weekly";
+          description = "The `OnCalendar=` schedule of the auto prune";
+        };
+      };
       quadletctl = {
         enable = lib.mkEnableOption "the `quadletctl` command to manage the units" // {
           default = true;

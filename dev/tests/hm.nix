@@ -37,6 +37,7 @@
               enable = true;
               startAt = "weekly";
             };
+            autoPrune.enable = true;
             images.nginx.package = pkgs.dockerTools.examples.nginxStream;
             containers = {
               nginx = {
@@ -91,5 +92,6 @@
       # Podman's own auto-update timer, at the configured schedule.
       timer = machine.get_unit_property("podman-auto-update.timer", "TimersCalendar", "${user.name}")
       assert "Mon *-*-* 00:00:00" in timer, f"unexpected schedule: {timer}"
+      machine.succeed("sudo -H -u ${user.name} XDG_RUNTIME_DIR=/run/user/${toString user.uid} systemctl --user start quadlet-image-prune.service")
     '';
 }

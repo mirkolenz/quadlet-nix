@@ -11,6 +11,7 @@ let
   cfg = config.virtualisation.quadlet;
   podman = config.services.podman.package;
   lib' = import ../lib.nix lib;
+  imagePrune = lib'.mkImagePrune podman;
   nixImageLoad = lib'.mkNixImageLoad pkgs;
 
   mkSubmodule =
@@ -123,5 +124,28 @@ in
       };
 
     home.packages = lib.mkIf cfg.quadletctl.enable [ cfg.quadletctl.package ];
+
+    # Runs after the units have started, so that a missed run does not remove
+    # the images of units that are about to start at login.
+    systemd.user = lib.mkIf cfg.autoPrune.enable {
+      services.quadlet-image-prune = {
+        Unit = {
+          Description = imagePrune.description;
+          After = [ "default.target" ];
+        };
+        Service = {
+          Type = "oneshot";
+          ExecStart = imagePrune.command;
+        };
+      };
+      timers.quadlet-image-prune = {
+        Unit.Description = imagePrune.description;
+        Timer = {
+          OnCalendar = cfg.autoPrune.startAt;
+          Persistent = true;
+        };
+        Install.WantedBy = [ "timers.target" ];
+      };
+    };
   };
 }
