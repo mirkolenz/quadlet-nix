@@ -13,8 +13,7 @@ let
   duplicates =
     key:
     lib.pipe cfg.allObjects [
-      (map key)
-      (lib.groupBy lib.id)
+      (lib.groupBy key)
       (lib.filterAttrs (_: values: lib.length values > 1))
       lib.attrNames
     ];
