@@ -60,19 +60,6 @@ lib: rec {
   nixImageReference =
     image: "localhost/quadlet-nix/${image.imageName}:${lib.hashString "sha256" image.outPath}";
 
-  # The `ExecStartPre=` running the load script for the Nix-built `image`.
-  mkNixImageLoad =
-    pkgs:
-    let
-      script = lib.getExe (pkgs.callPackage ./pkgs/nix-image-load/package.nix { });
-    in
-    image:
-    lib.escapeShellArgs [
-      script
-      (nixImageReference image)
-      "${image}"
-    ];
-
   # The units of the `autoUpdate` and `autoPrune` options in a manager whose
   # units start with `target`, without the install of the timers.
   mkMaintenanceUnits = cfg: podman: target: {

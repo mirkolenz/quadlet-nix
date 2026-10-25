@@ -6,27 +6,10 @@
   ...
 }:
 let
-  inherit (lib) types;
-
   cfg = config.virtualisation.quadlet;
   podman = config.services.podman.package;
   lib' = import ../lib.nix lib;
   units = lib'.mkMaintenanceUnits cfg podman "default.target";
-  nixImageLoad = lib'.mkNixImageLoad pkgs;
-
-  mkSubmodule =
-    path:
-    types.submodule {
-      imports = [
-        path
-        ../units/common.nix
-      ];
-      owner = "user";
-      _module.args = {
-        inherit lib' podman nixImageLoad;
-        inherit (cfg) images;
-      };
-    };
 
   # A home-manager configuration always covers a single user, so all objects
   # share one generator run and references between units always resolve.
@@ -56,51 +39,7 @@ let
     map mkEntry ([ service ] ++ obj.aliases ++ depPaths);
 in
 {
-  imports = [ ./common.nix ];
-  options = {
-    virtualisation.quadlet = {
-      containers = lib.mkOption {
-        type = types.attrsOf (mkSubmodule ../units/container.nix);
-        default = { };
-        description = "The containers to manage";
-      };
-      networks = lib.mkOption {
-        type = types.attrsOf (mkSubmodule ../units/network.nix);
-        default = { };
-        description = "The networks to manage";
-      };
-      pods = lib.mkOption {
-        type = types.attrsOf (mkSubmodule ../units/pod.nix);
-        default = { };
-        description = "The pods to manage";
-      };
-      kubes = lib.mkOption {
-        type = types.attrsOf (mkSubmodule ../units/kube.nix);
-        default = { };
-        description = "The kubes to manage";
-      };
-      volumes = lib.mkOption {
-        type = types.attrsOf (mkSubmodule ../units/volume.nix);
-        default = { };
-        description = "The volumes to manage";
-      };
-      builds = lib.mkOption {
-        type = types.attrsOf (mkSubmodule ../units/build.nix);
-        default = { };
-        description = "The builds to manage";
-      };
-      images = lib.mkOption {
-        type = types.attrsOf (mkSubmodule ../units/image.nix);
-        default = { };
-        description = "The images to manage";
-      };
-      artifacts = lib.mkOption {
-        type = types.attrsOf (mkSubmodule ../units/artifact.nix);
-        default = { };
-        description = "The artifacts to manage";
-      };
-    };
-  };
+  imports = [ (lib.modules.importApply ./common.nix { owner = "user"; }) ];
 
   config = lib.mkIf (cfg.enable && cfg.allObjects != [ ]) {
     services.podman = {

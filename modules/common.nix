@@ -1,3 +1,5 @@
+# `unitModule` adapts every unit to the systemd managers of the importing module.
+unitModule:
 {
   lib,
   config,
@@ -9,6 +11,50 @@ let
   lib' = import ../lib.nix lib;
   cfg = config.virtualisation.quadlet;
 
+  kinds = [
+    "artifact"
+    "build"
+    "container"
+    "image"
+    "kube"
+    "network"
+    "pod"
+    "volume"
+  ];
+
+  nixImageLoadExe = lib.getExe (pkgs.callPackage ../pkgs/nix-image-load/package.nix { });
+
+  # The `ExecStartPre=` loading a Nix-built image.
+  nixImageLoad =
+    image:
+    lib.escapeShellArgs [
+      nixImageLoadExe
+      (lib'.nixImageReference image)
+      "${image}"
+    ];
+
+  mkObjectsOption =
+    kind:
+    lib.nameValuePair "${kind}s" (
+      lib.mkOption {
+        type = types.attrsOf (
+          types.submodule {
+            imports = [
+              ../units/${kind}.nix
+              ../units/common.nix
+              unitModule
+            ];
+            _module.args = {
+              inherit lib' nixImageLoad;
+              inherit (cfg) podman images;
+            };
+          }
+        );
+        default = { };
+        description = "The ${kind}s to manage";
+      }
+    );
+
   duplicateNames = lib.intersectLists (lib.attrNames cfg.containers) (lib.attrNames cfg.pods);
   duplicates =
     key:
@@ -19,20 +65,11 @@ let
     ];
   duplicateRefs = duplicates (obj: obj.ref);
   duplicateServiceNames = duplicates (obj: obj.serviceName);
-  concatObjects = lib.concatMap lib.attrValues [
-    cfg.artifacts
-    cfg.builds
-    cfg.containers
-    cfg.images
-    cfg.kubes
-    cfg.networks
-    cfg.pods
-    cfg.volumes
-  ];
+  concatObjects = lib.concatMap (kind: lib.attrValues cfg."${kind}s") kinds;
 in
 {
   options = {
-    virtualisation.quadlet = {
+    virtualisation.quadlet = lib.listToAttrs (map mkObjectsOption kinds) // {
       enable = lib.mkEnableOption "quadlet";
       podman = lib.mkOption {
         internal = true;
