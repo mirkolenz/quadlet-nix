@@ -37,6 +37,7 @@ You can get started with the following minimal configuration:
 All available options are described in the [documentation](https://mirkolenz.github.io/quadlet-nix/index.html).
 You may also want to take a look at the [tests](https://github.com/mirkolenz/quadlet-nix/blob/main/dev/tests/nixos.nix) for more examples.
 Once there are units, the NixOS module enables `virtualisation.podman` and the Home Manager module enables `services.podman`, whose `package` both use for generating the units.
+Note that `services.podman` writes its own `containers.conf`, `storage.conf`, `registries.conf` and `policy.json` into `~/.config/containers`, which take precedence over those of the system in `/etc/containers`.
 
 ## Rootless units
 
