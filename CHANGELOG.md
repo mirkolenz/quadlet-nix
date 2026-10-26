@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.7.0](https://github.com/mirkolenz/quadlet-nix/compare/v1.6.0...v1.7.0) (2026-10-26)
+
+### Features
+
+* **modules:** add auto prune timer for unused images ([ed44916](https://github.com/mirkolenz/quadlet-nix/commit/ed44916139633486afd9815ab14d586099ea7e45))
+* **modules:** delegate auto-update to podman timer ([5e8255b](https://github.com/mirkolenz/quadlet-nix/commit/5e8255ba538eb1686200345055a4f1ba7ccc4095))
+* **modules:** run podman auto-update service from own timer ([1cd5397](https://github.com/mirkolenz/quadlet-nix/commit/1cd5397209facfaec826e2e2a1f3c28a2b70e7e6))
+* **units:** auto-start only long-running units ([2ce51dc](https://github.com/mirkolenz/quadlet-nix/commit/2ce51dce017cb11401a30e1a375ff8cfdd94fc89))
+* **units:** deprecate install config ([b292b81](https://github.com/mirkolenz/quadlet-nix/commit/b292b810d6cb721add673e91110d293e1003d686))
+* **units:** load nix-built images from image packages ([9a6af35](https://github.com/mirkolenz/quadlet-nix/commit/9a6af3574088455227ae765654bcd52280f5471e))
+
+### Bug Fixes
+
+* **units:** derive podman names like quadlet ([cc6fe01](https://github.com/mirkolenz/quadlet-nix/commit/cc6fe0177fa85a2eaac615a5d38a5c37dbb1868f))
+
 ## [1.6.0](https://github.com/mirkolenz/quadlet-nix/compare/v1.5.4...v1.6.0) (2026-10-01)
 
 ### Features
