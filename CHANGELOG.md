@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.7.1](https://github.com/mirkolenz/quadlet-nix/compare/v1.7.0...v1.7.1) (2026-10-29)
+
+### Bug Fixes
+
+* **modules:** shorten unit and image names ([05ba968](https://github.com/mirkolenz/quadlet-nix/commit/05ba968553105a45a7aa27ee48018c25cd41a579))
+* **units:** load nix-built images with podman ([0dd8a1e](https://github.com/mirkolenz/quadlet-nix/commit/0dd8a1e339d62fa5d409249843afa5b85c481fe5))
+* **units:** pass global podman arguments to image loader ([61410f5](https://github.com/mirkolenz/quadlet-nix/commit/61410f5580053e20209dee4c500723f9d23386bd))
+
 ## [1.7.0](https://github.com/mirkolenz/quadlet-nix/compare/v1.6.0...v1.7.0) (2026-10-26)
 
 ### Features
