@@ -49,7 +49,7 @@ in
       lib'.nixImageReference config.imagePackage
     );
     serviceConfig.ExecStartPre = lib.mkIf (config.imagePackage != null) [
-      (nixImageLoad config.imagePackage)
+      (nixImageLoad config.imagePackage config.containerConfig)
     ];
 
     finalConfig.Container =

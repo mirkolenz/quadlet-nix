@@ -123,7 +123,13 @@ in
             containerConfig.Image = "web.image";
             serviceConfig.Type = "oneshot";
           };
-          containers.direct.imagePackage = pkgs.dockerTools.streamLayeredImage { name = "direct"; };
+          containers.direct = {
+            imagePackage = pkgs.dockerTools.streamLayeredImage { name = "direct"; };
+            containerConfig = {
+              GlobalArgs = "--root=/srv/storage";
+              ContainersConfModule = "/etc/module.conf";
+            };
+          };
           containers.renamed.containerConfig.ServiceName = "service";
           kubes.job = {
             kubeConfig.Yaml = "job.yaml";
@@ -255,10 +261,12 @@ in
             "quadlet-load"
           ]
           && lib.hasPrefix "localhost/quadlet/web:" nixImage.images.web.podmanName
-          # A container loads its image package itself, with the same script.
+          # A container loads its image package itself, with the same script,
+          # into the storage that its global arguments select.
           && lib.all (lib.flip lib.hasInfix nixImage.containers.direct.text) [
             "Image=localhost/quadlet/direct:"
             "quadlet-load"
+            " --module=/etc/module.conf --root=/srv/storage"
           ]
           # No registry provides a Nix-built image to auto-update from.
           && lib.all (unit: lib.hasInfix "AutoUpdate=disabled" unit.text) [

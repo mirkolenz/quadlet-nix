@@ -26,15 +26,22 @@ let
     pkgs.callPackage ../pkgs/quadlet-load/package.nix { inherit (cfg) podman; }
   );
 
-  # The `ExecStartPre=` loading a Nix-built image.
+  # The `ExecStartPre=` loading a Nix-built image with the global podman
+  # arguments that Quadlet derives from the unit `section`, so it uses the
+  # same storage. They keep their own quoting, which systemd splits like
+  # Quadlet does.
   nixImageLoad =
-    image:
+    image: section:
     lib.escapeShellArgs [
       nixImageLoadExe
       (lib'.nixImageReference image)
       "${image}"
       "${image.imageName}:${image.imageTag}"
-    ];
+    ]
+    + lib.concatMapStrings (arg: " ${lib'.mkValueString arg}") (
+      map (module: "--module=${module}") (lib.toList (section.ContainersConfModule or [ ]))
+      ++ lib.toList (section.GlobalArgs or [ ])
+    );
 
   mkObjectsOption =
     kind:

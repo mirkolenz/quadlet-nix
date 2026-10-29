@@ -31,7 +31,7 @@
         Policy = "missing";
       };
       serviceConfig = {
-        ExecStartPre = [ (nixImageLoad config.package) ];
+        ExecStartPre = [ (nixImageLoad config.package config.imageConfig) ];
         RemainAfterExit = lib.mkDefault false;
       };
       quadletConfig.DefaultDependencies = lib.mkDefault false;
