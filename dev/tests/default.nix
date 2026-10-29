@@ -250,15 +250,15 @@ in
         # pull then finds. A oneshot keeps systemd's restart defaults.
         nix-image = mkBoolCheck "quadlet-nix-image" (
           lib.all (lib.flip lib.hasInfix nixImage.images.web.text) [
-            "Image=localhost/quadlet-nix/web:"
+            "Image=localhost/quadlet/web:"
             "Policy=missing"
-            "quadlet-nix-image-load"
+            "quadlet-load"
           ]
-          && lib.hasPrefix "localhost/quadlet-nix/web:" nixImage.images.web.podmanName
+          && lib.hasPrefix "localhost/quadlet/web:" nixImage.images.web.podmanName
           # A container loads its image package itself, with the same script.
           && lib.all (lib.flip lib.hasInfix nixImage.containers.direct.text) [
-            "Image=localhost/quadlet-nix/direct:"
-            "quadlet-nix-image-load"
+            "Image=localhost/quadlet/direct:"
+            "quadlet-load"
           ]
           # No registry provides a Nix-built image to auto-update from.
           && lib.all (unit: lib.hasInfix "AutoUpdate=disabled" unit.text) [
@@ -276,9 +276,9 @@ in
           nixImage.containers.renamed.podmanName == "systemd-service"
         );
         deprecated-options = mkBoolCheck "quadlet-deprecated-options" (
-          deprecated.systemd.timers.quadlet-auto-update.wantedBy == [ "timers.target" ]
+          deprecated.systemd.timers.quadlet-update.wantedBy == [ "timers.target" ]
           && lib.count (lib.hasInfix "deprecated") deprecated.warnings == 2
-          && lib.hasInfix "Image=localhost/quadlet-nix/web:" deprecated.virtualisation.quadlet.containers.web.text
+          && lib.hasInfix "Image=localhost/quadlet/web:" deprecated.virtualisation.quadlet.containers.web.text
         );
         nixos = pkgs.testers.runNixOSTest {
           name = "nixos";

@@ -58,7 +58,7 @@ lib: rec {
   # new build. The hash carries no string context, since only the load step
   # needs the image built.
   nixImageReference =
-    image: "localhost/quadlet-nix/${image.imageName}:${lib.hashString "sha256" image.outPath}";
+    image: "localhost/quadlet/${image.imageName}:${lib.hashString "sha256" image.outPath}";
 
   # The units of the `autoUpdate` and `autoPrune` options in a manager whose
   # units start with `target`, without the install of the timers.
@@ -66,7 +66,7 @@ lib: rec {
     services = lib.optionalAttrs cfg.autoPrune.enable {
       # Runs after `target`, so that a missed run does not remove the images
       # of units that are about to start.
-      quadlet-image-prune = {
+      quadlet-prune = {
         Unit = {
           Description = "Prune unused Podman images";
           After = [ target ];
@@ -83,7 +83,7 @@ lib: rec {
     };
     timers =
       lib.optionalAttrs cfg.autoUpdate.enable {
-        quadlet-auto-update = {
+        quadlet-update = {
           Unit.Description = "Update the Podman images of Quadlet units";
           Timer = {
             OnCalendar = cfg.autoUpdate.startAt;
@@ -94,7 +94,7 @@ lib: rec {
         };
       }
       // lib.optionalAttrs cfg.autoPrune.enable {
-        quadlet-image-prune = {
+        quadlet-prune = {
           Unit.Description = "Prune unused Podman images";
           Timer = {
             OnCalendar = cfg.autoPrune.startAt;

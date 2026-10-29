@@ -22,7 +22,7 @@ let
     "volume"
   ];
 
-  nixImageLoadExe = lib.getExe (pkgs.callPackage ../pkgs/nix-image-load/package.nix { });
+  nixImageLoadExe = lib.getExe (pkgs.callPackage ../pkgs/quadlet-load/package.nix { });
 
   # The `ExecStartPre=` loading a Nix-built image.
   nixImageLoad =
@@ -84,7 +84,7 @@ in
       };
       autoUpdate = {
         enable = lib.mkEnableOption ''
-          the `quadlet-auto-update` timer, which runs the `podman-auto-update` service that Podman ships to update the containers labeled with `AutoUpdate=` and then prune dangling images.
+          the `quadlet-update` timer, which runs the `podman-auto-update` service that Podman ships to update the containers labeled with `AutoUpdate=` and then prune dangling images.
           On NixOS, a user manager runs it only for the owners of rootless units'';
         startAt = lib.mkOption {
           type = types.str;

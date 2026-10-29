@@ -4,7 +4,7 @@
   skopeo,
 }:
 writeShellApplication {
-  name = "quadlet-nix-image-load";
+  name = "quadlet-load";
   text = lib.readFile ./script.sh;
   runtimeInputs = [ skopeo ];
 }

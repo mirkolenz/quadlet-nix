@@ -90,10 +90,10 @@
       machine.succeed("sudo -H -u ${user.name} XDG_RUNTIME_DIR=/run/user/${toString user.uid} ${home.virtualisation.quadlet.quadletctl.package}/bin/quadletctl systemctl is-active ${containers.nginx.serviceName} --quiet")
 
       # The auto-update timer, at the configured schedule, runs Podman's own service.
-      timer = machine.get_unit_property("quadlet-auto-update.timer", "TimersCalendar", "${user.name}")
+      timer = machine.get_unit_property("quadlet-update.timer", "TimersCalendar", "${user.name}")
       assert "Mon *-*-* 00:00:00" in timer, f"unexpected schedule: {timer}"
       timeout = machine.get_unit_property("podman-auto-update.service", "TimeoutStartUSec", "${user.name}")
       assert timeout == "15min", f"unexpected timeout: {timeout}"
-      machine.succeed("sudo -H -u ${user.name} XDG_RUNTIME_DIR=/run/user/${toString user.uid} systemctl --user start quadlet-image-prune.service")
+      machine.succeed("sudo -H -u ${user.name} XDG_RUNTIME_DIR=/run/user/${toString user.uid} systemctl --user start quadlet-prune.service")
     '';
 }

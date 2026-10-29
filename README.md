@@ -131,7 +131,7 @@ virtualisation.quadlet = {
 ```
 
 Either way, the image is loaded before the unit starts unless this build is already present.
-Podman stores it as `localhost/quadlet-nix/<imageName>:<hash>`, the `podmanName` of an image unit.
+Podman stores it as `localhost/quadlet/<imageName>:<hash>`, the `podmanName` of an image unit.
 It is copied there with `skopeo`, which reads the same `storage.conf` as Podman, but not storage flags such as `--root` in `GlobalArgs=`, so configure a custom storage location in `storage.conf` instead.
 The hash of its store path tells the builds apart, even when they set a fixed tag such as `latest`.
 A container running such an image gets `AutoUpdate=disabled`, since no registry provides it, and is updated by rebuilding instead.
@@ -142,14 +142,14 @@ The container options `imageFile` and `imageStream` are deprecated in favor of `
 
 ## Updates and pruning
 
-`autoUpdate.enable` adds the `quadlet-auto-update` timer, scheduled at `autoUpdate.startAt`, which runs the `podman-auto-update` service that Podman ships.
+`autoUpdate.enable` adds the `quadlet-update` timer, scheduled at `autoUpdate.startAt`, which runs the `podman-auto-update` service that Podman ships.
 It updates and restarts the containers labeled with `AutoUpdate=`, and then prunes dangling images.
 A drop-in limits a run of the service to 15 minutes, while the `podman-auto-update` timer of Podman stays untouched.
 On NixOS, a user manager only runs the timer for the owners of rootless units.
 With Home Manager, `services.podman.autoUpdate` is disabled by default and cannot be enabled together with `autoUpdate`, since it defines a service of the same name.
 
 Previous versions of an image stay tagged, both pulled ones such as `v2.1` after switching to `v3.0` and previous Nix builds, so the prune of every auto-update keeps them.
-`autoPrune.enable` adds the `quadlet-image-prune` timer, scheduled at `autoPrune.startAt`, which removes every image that no container uses with `podman image prune --all`.
+`autoPrune.enable` adds the `quadlet-prune` timer, scheduled at `autoPrune.startAt`, which removes every image that no container uses with `podman image prune --all`.
 Unlike `virtualisation.podman.autoPrune` with `--all`, it covers rootless owners and Home Manager, and leaves alone the networks of Quadlet units, which `podman system prune` would remove.
 As with any such prune, the image of a stopped unit is pulled or loaded again when it starts.
 

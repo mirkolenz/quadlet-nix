@@ -147,14 +147,14 @@
       # build, and the image of stopped units, which their next start loads
       # again. The `nginx` container runs the same image from its archive.
       machine.succeed("podman load -i /etc/previous.tar")
-      machine.succeed("systemctl is-active quadlet-image-prune.timer")
-      machine.succeed("systemctl start quadlet-image-prune.service")
+      machine.succeed("systemctl is-active quadlet-prune.timer")
+      machine.succeed("systemctl start quadlet-prune.service")
       machine.fail("podman image exists localhost/previous:previous")
       machine.succeed("podman image exists ${images.nginx.podmanName}")
       nginx_services = ["${containers.nginx-shared.serviceName}.service", "${containers.nginx-image-stream.serviceName}.service", "${containers.nginx.serviceName}.service"]
       for service in nginx_services:
           machine.stop_job(service)
-      machine.succeed("systemctl start quadlet-image-prune.service")
+      machine.succeed("systemctl start quadlet-prune.service")
       machine.fail("podman image exists ${images.nginx.podmanName}")
       for service in nginx_services:
           machine.start_job(service)
