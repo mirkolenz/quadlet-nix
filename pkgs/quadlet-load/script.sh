@@ -1,18 +1,22 @@
 reference=$1
 image=$2
+name=$3
 
-if skopeo inspect --raw "containers-storage:$reference" >/dev/null 2>&1; then
+if podman image exists "$reference"; then
   exit
 fi
 
-# The image comes from the Nix store, so no signature policy applies.
-copy() {
-  skopeo --insecure-policy copy docker-archive:/dev/stdin "containers-storage:$reference"
-}
-
 # A stream is an executable writing the image to stdout, unlike an archive.
+# The pull prints its progress to stderr and the image ID to stdout.
 if [[ -x $image ]]; then
-  "$image" | copy
+  id=$("$image" | podman pull docker-archive:/dev/stdin)
 else
-  copy <"$image"
+  id=$(podman pull "docker-archive:$image")
 fi
+
+# Tagging the ID stays correct while another build claims a fixed tag of the archive.
+podman tag "$id" "$reference"
+
+# Only the reference names the image, but the archive name may already belong
+# to another build, so removing it must not fail the load.
+podman untag "$id" "$name" || true

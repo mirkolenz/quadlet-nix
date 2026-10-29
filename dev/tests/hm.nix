@@ -31,6 +31,9 @@
         { pkgs, config, ... }:
         {
           home.stateVersion = "24.11";
+          # The Podman of nixpkgs, as on other distributions, instead of the
+          # wrapped one of NixOS.
+          services.podman.package = pkgs.podman;
           virtualisation.quadlet = {
             enable = true;
             autoUpdate = {

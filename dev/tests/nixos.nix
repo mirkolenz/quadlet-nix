@@ -57,12 +57,11 @@
             imagePackage = pkgs.dockerTools.examples.nginxStream;
             containerConfig.PublishPort = [ "8081:80" ];
           };
+          # Loads a Nix-built image into rootless storage.
           nginx-rootless = {
             uid = config.users.users.quadlet.uid;
-            containerConfig = {
-              Image = "docker-archive:${pkgs.dockerTools.examples.nginx}";
-              PublishPort = [ "8082:80" ];
-            };
+            imagePackage = pkgs.dockerTools.examples.nginxStream;
+            containerConfig.PublishPort = [ "8082:80" ];
           };
         };
       };
@@ -120,6 +119,9 @@
       containers = json.loads(machine.succeed("quadletctl podman ${containers.nginx-rootless.serviceName} ps --format json"))
       assert len(containers) == 1, f"Expected 1 user container, got: {len(containers)}"
       assert 'nginx' in machine.succeed("curl http://127.0.0.1:8082").lower()
+      # Only the reference names a loaded image, not the name stored in its archive.
+      machine.succeed("quadletctl podman ${containers.nginx-rootless.serviceName} image exists ${containers.nginx-rootless.containerConfig.Image}")
+      machine.fail("quadletctl podman ${containers.nginx-rootless.serviceName} image exists ${containers.nginx-rootless.imagePackage.imageName}:${containers.nginx-rootless.imagePackage.imageTag}")
 
       # quadletctl dispatches every unit to the manager, journal and podman storage of its owner.
       units = machine.succeed("quadletctl list")

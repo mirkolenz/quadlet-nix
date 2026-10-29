@@ -1,10 +1,10 @@
 {
   lib,
   writeShellApplication,
-  skopeo,
+  podman,
 }:
 writeShellApplication {
   name = "quadlet-load";
   text = lib.readFile ./script.sh;
-  runtimeInputs = [ skopeo ];
+  runtimeInputs = [ podman ];
 }

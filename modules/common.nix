@@ -22,7 +22,9 @@ let
     "volume"
   ];
 
-  nixImageLoadExe = lib.getExe (pkgs.callPackage ../pkgs/quadlet-load/package.nix { });
+  nixImageLoadExe = lib.getExe (
+    pkgs.callPackage ../pkgs/quadlet-load/package.nix { inherit (cfg) podman; }
+  );
 
   # The `ExecStartPre=` loading a Nix-built image.
   nixImageLoad =
@@ -31,6 +33,7 @@ let
       nixImageLoadExe
       (lib'.nixImageReference image)
       "${image}"
+      "${image.imageName}:${image.imageTag}"
     ];
 
   mkObjectsOption =

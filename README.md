@@ -131,9 +131,9 @@ virtualisation.quadlet = {
 ```
 
 Either way, the image is loaded before the unit starts unless this build is already present.
-Podman stores it as `localhost/quadlet/<imageName>:<hash>`, the `podmanName` of an image unit.
-It is copied there with `skopeo`, which reads the same `storage.conf` as Podman, but not storage flags such as `--root` in `GlobalArgs=`, so configure a custom storage location in `storage.conf` instead.
-The hash of its store path tells the builds apart, even when they set a fixed tag such as `latest`.
+Podman loads it with `podman pull` from a `docker-archive:` and tags it as `localhost/quadlet/<imageName>:<hash>`, the `podmanName` of an image unit.
+The hash of its store path tells the builds apart, even when they set a fixed tag such as `latest`, so the name stored in the archive is removed again.
+The load does not receive storage flags such as `--root` in `GlobalArgs=`, so configure a custom storage location in `storage.conf` instead.
 A container running such an image gets `AutoUpdate=disabled`, since no registry provides it, and is updated by rebuilding instead.
 
 `imagePackage` is a shortcut for an image that a single container uses.
