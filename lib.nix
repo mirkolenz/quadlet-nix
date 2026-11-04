@@ -105,19 +105,19 @@ lib: rec {
         };
       }
       // lib.optionalAttrs cfg.autoPrune.enable {
-      # Runs after `target`, so that a missed run does not remove the images
-      # of units that are about to start.
-      quadlet-prune = {
-        Unit = {
-          Description = "Prune unused Podman images";
-          After = [ target ];
-        };
-        Service = {
-          Type = "oneshot";
-          ExecStart = "${lib.getExe podman} image prune --all --force";
+        # Runs after `target`, so that a missed run does not remove the images
+        # of units that are about to start.
+        quadlet-prune = {
+          Unit = {
+            Description = "Prune unused Podman images";
+            After = [ target ];
+          };
+          Service = {
+            Type = "oneshot";
+            ExecStart = "${lib.getExe podman} image prune --all --force";
+          };
         };
       };
-    };
     timers =
       lib.optionalAttrs cfg.autoUpdate.enable {
         quadlet-update = {
