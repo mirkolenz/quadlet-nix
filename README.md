@@ -166,7 +166,7 @@ packages.x86_64-linux.web-bundle = quadlet-nix.legacyPackages.x86_64-linux.mkBun
 ```
 
 Its `install.sh` installs and starts the units, restarts the changed ones and retires those that a previous bundle of the same `name` had, and the `uninstall.sh` it leaves in `bundle.assetDirectory` removes them again.
-Besides the Quadlet files, a bundle holds the NixOS services named by `bundle.services` with their timers and the `systemd.tmpfiles.settings` named by `bundle.tmpfiles`.
+Besides the Quadlet files, a bundle holds the NixOS services named by `bundle.services` with their timers, the NixOS sockets named by `bundle.sockets` and the `systemd.tmpfiles.settings` named by `bundle.tmpfiles`.
 The store paths they reference are copied below `bundle.assetDirectory`, so these must be self-contained, such as scripts, configs, static binaries and image archives.
 Rootless units, `aliases`, the `environment` of services and Nix-built images loaded through `imagePackage` or `package` are not supported.
 

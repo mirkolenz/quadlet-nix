@@ -138,13 +138,18 @@ in
         }).virtualisation.quadlet;
 
       # A bundle of an archive image, a store volume of symlinks, a NixOS
-      # service with its timer and a tmpfiles setting.
+      # service with its timer, a socket and a tmpfiles setting.
       inherit (self.legacyPackages.${system}) mkBundle;
       bundled = mkBundle {
         modules = lib.singleton (
           { config, ... }:
           {
             systemd.tmpfiles.settings."10-web"."/var/lib/web".d.mode = "0700";
+            systemd.sockets.web = {
+              wantedBy = [ "sockets.target" ];
+              listenStreams = [ "8080" ];
+              socketConfig.Service = "web.service";
+            };
             systemd.services.web-reload = {
               after = [ "web.service" ];
               startAt = "daily";
@@ -165,6 +170,7 @@ in
                 name = "web";
                 tmpfiles = [ "10-web" ];
                 services = [ "web-reload" ];
+                sockets = [ "web" ];
               };
             };
           }
@@ -331,6 +337,9 @@ in
           cd ${bundled}
           grep -qx 'Wants=web.service' etc/systemd/system/multi-user.target.d/web.conf
           grep -qx 'Wants=web-reload.timer' etc/systemd/system/timers.target.d/web.conf
+          grep -qx 'Wants=web.socket' etc/systemd/system/sockets.target.d/web.conf
+          grep -qx 'ListenStream=8080' etc/systemd/system/web.socket
+          grep -qx 'Service=web.service' etc/systemd/system/web.socket
           grep -qx 'ExecStart=/usr/bin/systemctl try-restart web.service' etc/systemd/system/web-reload.service
           grep -qx 'After=web.service' etc/systemd/system/web-reload.service
           grep -qx 'OnCalendar=daily' etc/systemd/system/web-reload.timer

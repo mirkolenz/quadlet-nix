@@ -5,6 +5,7 @@
   config,
   lib,
   pkgs,
+  utils,
   ...
 }:
 let
@@ -30,31 +31,50 @@ let
     );
   };
 
-  # The file of the NixOS unit `unit` named `name`, with its `[Unit]` section
-  # and the other `sections`, but without the markers of NixOS such as
-  # `X-Restart-Triggers`.
-  nixosUnitFile =
-    name: unit: sections:
-    unitFile name "etc/systemd/system/${name}" (lib'.mkUnitText (
-      { Unit = lib.filterAttrs (key: _: !lib.hasPrefix "X-" key) unit.unitConfig; } // sections
-    )) unit;
+  # The `[Unit]` section of the NixOS unit `unit` without the markers of
+  # NixOS such as `X-Restart-Triggers`.
+  unitSection = unit: lib.filterAttrs (key: _: !lib.hasPrefix "X-" key) unit.unitConfig;
+
+  # The file of the NixOS unit `unit` named `name` as `toUnit` of NixOS
+  # renders it, without `[Install]`, which the drop-ins replace.
+  renderedUnitFile =
+    toUnit: name: unit:
+    unitFile name "etc/systemd/system/${name}"
+      (toUnit (
+        unit
+        // {
+          unitConfig = unitSection unit;
+          wantedBy = [ ];
+        }
+      )).text
+      unit;
+
+  inherit (utils.systemdUtils.lib) socketToUnit timerToUnit;
 
   unitFiles =
     map (
       obj: unitFile "${obj.serviceName}.service" "etc/containers/systemd/${obj.ref}" obj.text obj
     ) quadlet.allObjects
-    # Every service with its timer of the same name, if any.
+    # Every service with its timer of the same name, if any. A service is
+    # rendered here, since NixOS would add its global environment and markers.
     ++ lib.concatMap (
       name:
       let
         service = config.systemd.services.${name};
-        timer = config.systemd.timers.${name};
       in
-      [ (nixosUnitFile "${name}.service" service { Service = service.serviceConfig; }) ]
+      [
+        (unitFile "${name}.service" "etc/systemd/system/${name}.service" (lib'.mkUnitText {
+          Unit = unitSection service;
+          Service = service.serviceConfig;
+        }) service)
+      ]
       ++ lib.optional (config.systemd.timers ? ${name}) (
-        nixosUnitFile "${name}.timer" timer { Timer = timer.timerConfig; }
+        renderedUnitFile timerToUnit "${name}.timer" config.systemd.timers.${name}
       )
-    ) cfg.services;
+    ) cfg.services
+    ++ lib.mapAttrsToList (name: renderedUnitFile socketToUnit "${name}.socket") (
+      lib.getAttrs cfg.sockets config.systemd.sockets
+    );
 
   dependencies = lib.concatMap (unit: unit.dependencies) unitFiles;
 
@@ -85,17 +105,15 @@ let
   # Every file the bundle installs below `/etc`, by its path there, with its
   # store paths moved below `assetDirectory`.
   etcFiles =
-    lib.listToAttrs (
-      map (
-        file:
-        lib.nameValuePair file.path (
-          pkgs.writeText (lib.baseNameOf file.path) (
-            lib.replaceStrings [ "${storeDir}/" ] [ "${cfg.assetDirectory}/" ] file.text
-          )
+    lib.genAttrs' (unitFiles ++ dropins) (
+      file:
+      lib.nameValuePair file.path (
+        pkgs.writeText (lib.baseNameOf file.path) (
+          lib.replaceStrings [ "${storeDir}/" ] [ "${cfg.assetDirectory}/" ] file.text
         )
-      ) (unitFiles ++ dropins)
+      )
     )
-    // lib.listToAttrs (map (tmpfile: lib.nameValuePair tmpfile.path tmpfile.source) tmpfiles);
+    // lib.genAttrs' tmpfiles (tmpfile: lib.nameValuePair tmpfile.path tmpfile.source);
 
   # The store paths that the files reference, as Nix finds them, which the
   # bundle copies below `assetDirectory`, and every store path they and the
@@ -193,6 +211,14 @@ let
     ++ rejected "only rootful units can be bundled, unlike" (
       lib.filter (obj: obj.owner != "system") quadlet.allObjects
     )
+    ++ listed "disabled units cannot be bundled, unlike" (
+      map (name: "${name}.service") (
+        lib.filter (name: !config.systemd.services.${name}.enable) cfg.services
+      )
+      ++ map (name: "${name}.socket") (
+        lib.filter (name: !config.systemd.sockets.${name}.enable) cfg.sockets
+      )
+    )
     ++ rejected "drop-ins cannot install the aliases of" (
       lib.filter (obj: obj.aliases != [ ]) quadlet.allObjects
     )
@@ -248,6 +274,17 @@ in
         executables by their absolute path.
         It rejects `environment` and scripts such as `script`, which run a
         shell from the store.
+      '';
+    };
+    sockets = mkOption {
+      type = with types; listOf str;
+      default = [ ];
+      example = [ "web" ];
+      description = ''
+        The NixOS sockets of the bundle, such as those that activate a Quadlet
+        container whose service lists them in `Sockets=`.
+        Make that service `PartOf=` its sockets, so a socket the installation
+        restarts also restarts the service holding its old listener.
       '';
     };
     name = mkOption {
@@ -306,9 +343,9 @@ in
       default = package;
       defaultText = lib.literalMD "the bundle of this system's rootful units";
       description = ''
-        The rootful Quadlet units, the `services` with their timers and the
-        `tmpfiles` of this system as files for a host without Nix, with podman 5
-        and systemd, below the root they belong to.
+        The rootful Quadlet units, the `services` with their timers, the
+        `sockets` and the `tmpfiles` of this system as files for a host without
+        Nix, with podman 5 and systemd, below the root they belong to.
         Its `install.sh` copies them into place, starts them, restarts those it
         changed and retires those the previous bundle had but this one lacks,
         and the `uninstall.sh` it installs into `assetDirectory` removes them.
