@@ -94,12 +94,18 @@ in
       };
       autoUpdate = {
         enable = lib.mkEnableOption ''
-          the `quadlet-update` timer, which runs the `podman-auto-update` service that Podman ships to update the containers labeled with `AutoUpdate=` and then prune dangling images.
+          the `quadlet-update` timer and service, which runs `podman auto-update` to update the containers labeled with `AutoUpdate=` and then prunes dangling images.
           On NixOS, a user manager runs it only for the owners of rootless units'';
         startAt = lib.mkOption {
           type = types.str;
           default = "*-*-* 00:00:00";
           description = "The `OnCalendar=` schedule of the auto update";
+        };
+        timeout = lib.mkOption {
+          type = types.str;
+          default = "15min";
+          example = "2h";
+          description = "The `TimeoutStartSec=` of a run, which pulls every image, so that a hanging pull cannot block the next runs";
         };
       };
       autoPrune = {

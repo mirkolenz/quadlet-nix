@@ -27,12 +27,7 @@ let
       units = lib'.mkMaintenanceUnits cfg podman target;
     in
     lib.mkIf (objects != [ ]) {
-      services =
-        lib.genAttrs' objects mkServiceOverride
-        // lib.mapAttrs (_: toNixosUnit) units.services
-        // lib.mapAttrs (
-          _: dropin: toNixosUnit dropin // { overrideStrategy = "asDropin"; }
-        ) units.serviceDropins;
+      services = lib.genAttrs' objects mkServiceOverride // lib.mapAttrs (_: toNixosUnit) units.services;
       # Repeated triggering conditions implement OR semantics across users.
       timers = lib.mapAttrs (
         _: timer:

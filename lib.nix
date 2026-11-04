@@ -84,7 +84,26 @@ lib: rec {
   # The units of the `autoUpdate` and `autoPrune` options in a manager whose
   # units start with `target`, without the install of the timers.
   mkMaintenanceUnits = cfg: podman: target: {
-    services = lib.optionalAttrs cfg.autoPrune.enable {
+    services =
+      # Like the `podman-auto-update` service of Podman, but with a timeout
+      # instead of hanging on a pull forever.
+      lib.optionalAttrs cfg.autoUpdate.enable {
+        quadlet-update = {
+          Unit = {
+            Description = "Update the Podman images of Quadlet units";
+            Documentation = "man:podman-auto-update(1)";
+            Wants = [ "network-online.target" ];
+            After = [ "network-online.target" ];
+          };
+          Service = {
+            Type = "oneshot";
+            ExecStart = "${lib.getExe podman} auto-update";
+            ExecStartPost = "${lib.getExe podman} image prune --force";
+            TimeoutStartSec = cfg.autoUpdate.timeout;
+          };
+        };
+      }
+      // lib.optionalAttrs cfg.autoPrune.enable {
       # Runs after `target`, so that a missed run does not remove the images
       # of units that are about to start.
       quadlet-prune = {
@@ -98,10 +117,6 @@ lib: rec {
         };
       };
     };
-    # Podman ships the service, which would otherwise never time out on a hanging pull.
-    serviceDropins = lib.optionalAttrs cfg.autoUpdate.enable {
-      podman-auto-update.Service.TimeoutStartSec = 900;
-    };
     timers =
       lib.optionalAttrs cfg.autoUpdate.enable {
         quadlet-update = {
@@ -110,7 +125,6 @@ lib: rec {
             OnCalendar = cfg.autoUpdate.startAt;
             Persistent = true;
             RandomizedDelaySec = 900;
-            Unit = "podman-auto-update.service";
           };
         };
       }
