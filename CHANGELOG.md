@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.8.0](https://github.com/mirkolenz/quadlet-nix/compare/v1.7.1...v1.8.0) (2026-11-04)
+
+### Features
+
+* **modules:** add bundles for hosts without nix ([2ea697c](https://github.com/mirkolenz/quadlet-nix/commit/2ea697c465ae9c459e78c083974c249fe436cab5))
+* **modules:** run auto-update from own service with configurable timeout ([a0742e4](https://github.com/mirkolenz/quadlet-nix/commit/a0742e4deb2835d05f07a30d5943a980e220df48))
+
+### Bug Fixes
+
+* **lib:** render unit sections in conventional order ([77a9a0e](https://github.com/mirkolenz/quadlet-nix/commit/77a9a0ee83ca288a0ca2384418c1d3beda547da8))
+
 ## [1.7.1](https://github.com/mirkolenz/quadlet-nix/compare/v1.7.0...v1.7.1) (2026-10-29)
 
 ### Bug Fixes
