@@ -61,7 +61,10 @@ let
   ) objectsByOwner;
 in
 {
-  imports = [ (lib.modules.importApply ./common.nix ../units/nixos.nix) ];
+  imports = [
+    (lib.modules.importApply ./common.nix ../units/nixos.nix)
+    ./bundle.nix
+  ];
 
   config = lib.mkIf (cfg.enable && cfg.allObjects != [ ]) {
     virtualisation.podman.enable = true;

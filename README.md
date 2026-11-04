@@ -141,6 +141,35 @@ A container running such an image gets `AutoUpdate=disabled`, since no registry 
 An image shared by several units belongs in `images`, so that it is loaded once.
 The container options `imageFile` and `imageStream` are deprecated in favor of `imagePackage`.
 
+## Bundles for hosts without Nix
+
+`virtualisation.quadlet.bundle.package` renders the rootful units of a NixOS system into files for a host without Nix, which needs podman 5 and systemd.
+`legacyPackages.<system>.mkBundle` builds one from a minimal system of your modules:
+
+```nix
+packages.x86_64-linux.web-bundle = quadlet-nix.legacyPackages.x86_64-linux.mkBundle {
+  modules = [
+    ({ pkgs, ... }: let
+      image = pkgs.dockerTools.examples.nginx;
+    in {
+      virtualisation.quadlet = {
+        bundle.name = "web";
+        images.web.imageConfig = {
+          Image = "docker-archive:${image}";
+          ImageTag = "localhost/${image.imageName}:${image.imageTag}";
+        };
+        containers.web.containerConfig.Image = "web.image";
+      };
+    })
+  ];
+};
+```
+
+Its `install.sh` installs and starts the units, restarts the changed ones and retires those that a previous bundle of the same `name` had, and the `uninstall.sh` it leaves in `bundle.assetDirectory` removes them again.
+Besides the Quadlet files, a bundle holds the NixOS services named by `bundle.services` with their timers and the `systemd.tmpfiles.settings` named by `bundle.tmpfiles`.
+The store paths they reference are copied below `bundle.assetDirectory`, so these must be self-contained, such as scripts, configs, static binaries and image archives.
+Rootless units, `aliases`, the `environment` of services and Nix-built images loaded through `imagePackage` or `package` are not supported.
+
 ## Updates and pruning
 
 `autoUpdate.enable` adds the `quadlet-update` timer and service, scheduled at `autoUpdate.startAt` and limited to `autoUpdate.timeout`.

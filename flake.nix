@@ -10,7 +10,7 @@
   outputs =
     inputs@{ flake-parts, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } (
-      { lib, ... }:
+      { lib, self, ... }:
       {
         systems = [
           "x86_64-linux"
@@ -22,6 +22,30 @@
           ./docs
         ];
         flake.lib = import ./lib.nix lib;
+        perSystem =
+          { pkgs, config, ... }:
+          {
+            legacyPackages = {
+              # A minimal system of Quadlet configured by `modules`, whose
+              # `virtualisation.quadlet.bundle` is for a host without Nix.
+              mkBundleSystem =
+                { modules }:
+                inputs.nixpkgs.lib.nixosSystem {
+                  modules = [
+                    self.nixosModules.default
+                    {
+                      nixpkgs.pkgs = pkgs;
+                      system.stateVersion = lib.trivial.release;
+                      boot.isContainer = true;
+                      virtualisation.quadlet.enable = true;
+                    }
+                  ]
+                  ++ modules;
+                };
+              mkBundle =
+                args: (config.legacyPackages.mkBundleSystem args).config.virtualisation.quadlet.bundle.package;
+            };
+          };
         partitionedAttrs = {
           checks = "dev";
           formatter = "dev";

@@ -2,7 +2,8 @@ lib: rec {
   # https://github.com/NixOS/nixpkgs/blob/master/nixos/lib/systemd-lib.nix
   # https://github.com/NixOS/nixpkgs/blob/master/nixos/lib/systemd-unit-options.nix
 
-  mkValueString = lib.generators.mkValueStringDefault { };
+  # Paths are interpolated like NixOS does, which copies them into the store.
+  mkValueString = v: if lib.isPath v then "${v}" else lib.generators.mkValueStringDefault { } v;
   mkKeyValue = lib.generators.mkKeyValueDefault { inherit mkValueString; } "=";
 
   # Quote the whole "K=V" payload (systemd C-style) so Environment=, ...

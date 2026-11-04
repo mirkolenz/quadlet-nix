@@ -137,6 +137,44 @@ in
           };
         }).virtualisation.quadlet;
 
+      # A bundle of an archive image, a store volume of symlinks, a NixOS
+      # service with its timer and a tmpfiles setting.
+      inherit (self.legacyPackages.${system}) mkBundle;
+      bundled = mkBundle {
+        modules = lib.singleton (
+          { config, ... }:
+          {
+            systemd.tmpfiles.settings."10-web"."/var/lib/web".d.mode = "0700";
+            systemd.services.web-reload = {
+              after = [ "web.service" ];
+              startAt = "daily";
+              serviceConfig.ExecStart = "${lib.getExe' config.systemd.package "systemctl"} try-restart web.service";
+            };
+            virtualisation.quadlet = {
+              images.web.imageConfig = {
+                Image = "docker-archive:${pkgs.runCommand "web.tar.gz" { } "touch $out"}";
+                ImageTag = "localhost/web:latest";
+              };
+              containers.web.containerConfig = {
+                Image = "web.image";
+                Volume = "${
+                  pkgs.linkFarm "content" { "index.html" = pkgs.writeText "index.html" "hello"; }
+                }:/srv:ro";
+              };
+              bundle = {
+                name = "web";
+                tmpfiles = [ "10-web" ];
+                services = [ "web-reload" ];
+              };
+            };
+          }
+        );
+      };
+      # Whether the bundle of `quadlet` fails evaluation.
+      rejectsBundle =
+        quadlet:
+        !(lib.tryEval (mkBundle { modules = [ { virtualisation.quadlet = quadlet; } ]; }).drvPath).success;
+
       mkUnits =
         nixpkgs: publishPort:
         pkgs.symlinkJoin {
@@ -287,6 +325,51 @@ in
           deprecated.systemd.timers.quadlet-update.wantedBy == [ "timers.target" ]
           && lib.count (lib.hasInfix "deprecated") deprecated.warnings == 2
           && lib.hasInfix "Image=localhost/quadlet/web:" deprecated.virtualisation.quadlet.containers.web.text
+        );
+        bundle = pkgs.runCommand "quadlet-bundle" { } ''
+          set -euo pipefail
+          cd ${bundled}
+          grep -qx 'Wants=web.service' etc/systemd/system/multi-user.target.d/web.conf
+          grep -qx 'Wants=web-reload.timer' etc/systemd/system/timers.target.d/web.conf
+          grep -qx 'ExecStart=/usr/bin/systemctl try-restart web.service' etc/systemd/system/web-reload.service
+          grep -qx 'After=web.service' etc/systemd/system/web-reload.service
+          grep -qx 'OnCalendar=daily' etc/systemd/system/web-reload.timer
+          grep -qE '^Image=docker-archive:/usr/local/lib/web/[^/]+-web.tar.gz$' etc/containers/systemd/web.image
+          test -f usr/local/lib/web/*-content/index.html
+          test -f etc/tmpfiles.d/10-web.conf
+          test -x install.sh -a -x usr/local/lib/web/uninstall.sh
+          touch $out
+        '';
+        # The loader of a Nix-built image runs a shell from the store.
+        bundle-store-reference =
+          pkgs.runCommand "quadlet-bundle-store-reference"
+            {
+              failed = pkgs.testers.testBuildFailure (mkBundle {
+                modules = [
+                  { virtualisation.quadlet.images.web.package = pkgs.dockerTools.examples.nginxStream; }
+                ];
+              });
+            }
+            ''
+              grep -q "still reference the Nix store" $failed/testBuildFailure.log
+              touch $out
+            '';
+        bundle-rejects = mkBoolCheck "quadlet-bundle-rejects" (
+          !rejectsBundle { containers.web.containerConfig.Image = "localhost/web:latest"; }
+          && rejectsBundle {
+            containers.web = {
+              uid = 1000;
+              containerConfig.Image = "localhost/web:latest";
+            };
+          }
+          && rejectsBundle {
+            bundle.assertions = [
+              {
+                assertion = false;
+                message = "rejected";
+              }
+            ];
+          }
         );
         nixos = pkgs.testers.runNixOSTest {
           name = "nixos";
