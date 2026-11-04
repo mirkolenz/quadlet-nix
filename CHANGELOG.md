@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.8.1](https://github.com/mirkolenz/quadlet-nix/compare/v1.8.0...v1.8.1) (2026-11-04)
+
+### Bug Fixes
+
+* **modules:** bundle sockets ([7428d85](https://github.com/mirkolenz/quadlet-nix/commit/7428d85c64671bbe640c20e75fd6bc83bbc0b675))
+
 ## [1.8.0](https://github.com/mirkolenz/quadlet-nix/compare/v1.7.1...v1.8.0) (2026-11-04)
 
 ### Features
