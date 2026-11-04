@@ -28,18 +28,39 @@ lib: rec {
   sectionType = lib.types.attrsOf entryType;
   unitType = lib.types.attrsOf sectionType;
 
-  mkEntryConfig = n: v: map (v': mkKeyValue n v') (lib.toList v);
+  mkSectionConfig = lib.generators.toKeyValue {
+    inherit mkKeyValue;
+    listsAsDuplicateKeys = true;
+  };
 
-  mkSectionConfig = attrs: lib.concatLines (lib.concatLists (lib.mapAttrsToList mkEntryConfig attrs));
-
+  # A section without entries, such as one of empty lists, is left out.
   mkSectionText =
     name: attrs:
-    lib.optionalString (attrs != { }) ''
-      [${name}]
-      ${mkSectionConfig attrs}
-    '';
+    let
+      config = mkSectionConfig attrs;
+    in
+    lib.optionalString (config != "") "[${name}]\n${config}";
 
-  mkUnitText = unitConfig: lib.concatLines (lib.mapAttrsToList mkSectionText unitConfig);
+  # One blank line separates the sections, in the conventional order of
+  # `[Unit]` first and `[Install]` last.
+  mkUnitText =
+    unitConfig:
+    lib.pipe
+      (
+        [ "Unit" ]
+        ++ lib.attrNames (
+          removeAttrs unitConfig [
+            "Unit"
+            "Install"
+          ]
+        )
+        ++ [ "Install" ]
+      )
+      [
+        (map (section: mkSectionText section (unitConfig.${section} or { })))
+        (lib.filter (text: text != ""))
+        (lib.concatStringsSep "\n")
+      ];
 
   mkSectionOption =
     attrs:
