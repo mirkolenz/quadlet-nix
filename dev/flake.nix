@@ -1,8 +1,8 @@
 {
   description = "Development inputs for quadlet-nix. These do not appear in consumers' lock files.";
   inputs = {
-    # The only pin of nixpkgs in the dev partition, which every other input
-    # follows.
+    # The only pin of nixpkgs, which the main flake does without and every
+    # other input follows.
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     nixpkgs-stable.url = "github:NixOS/nixpkgs/nixos-26.05";
     home-manager = {

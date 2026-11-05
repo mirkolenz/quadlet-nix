@@ -8,10 +8,7 @@ You can get started with the following minimal configuration:
 {
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
-    quadlet-nix = {
-      url = "github:mirkolenz/quadlet-nix/v1";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    quadlet-nix.url = "github:mirkolenz/quadlet-nix/v1";
   };
   outputs = { nixpkgs, quadlet-nix, ... }: {
     nixosConfigurations.default = nixpkgs.lib.nixosSystem {
@@ -152,10 +149,11 @@ Since system-manager installs neither aliases nor `Upholds=` dependencies, units
 ## Bundles for hosts without Nix
 
 `virtualisation.quadlet.bundle.package` renders the rootful units of a NixOS or system-manager configuration into files for a host without Nix, which needs podman 5 and systemd.
-`legacyPackages.<system>.mkBundle` builds one from a minimal system of your modules:
+`lib.mkBundle` builds one from a minimal system of your modules with your `pkgs`:
 
 ```nix
-packages.x86_64-linux.web-bundle = quadlet-nix.legacyPackages.x86_64-linux.mkBundle {
+packages.x86_64-linux.web-bundle = quadlet-nix.lib.mkBundle {
+  pkgs = nixpkgs.legacyPackages.x86_64-linux;
   modules = [
     ({ pkgs, ... }: let
       image = pkgs.dockerTools.examples.nginx;

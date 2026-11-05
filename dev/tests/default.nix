@@ -26,7 +26,7 @@ in
   # basic checks to see if the module can be evaluated
   flake.nixosConfigurations = lib.genAttrs [ "x86_64-linux" "aarch64-linux" ] (
     system:
-    lib.nixosSystem {
+    inputs.nixpkgs.lib.nixosSystem {
       inherit system;
       modules = lib.singleton (
         { modulesPath, lib, ... }:
@@ -157,7 +157,7 @@ in
 
       # A bundle of an archive image, a store volume of symlinks, a NixOS
       # service with its timer, a socket and a tmpfiles setting.
-      inherit (self.legacyPackages.${system}) mkBundle;
+      mkBundle = args: self.lib.mkBundle ({ inherit pkgs; } // args);
       bundled = mkBundle {
         modules = lib.singleton (
           { config, ... }:
