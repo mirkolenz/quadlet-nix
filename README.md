@@ -1,6 +1,6 @@
 # quadlet-nix
 
-NixOS module for [Quadlet / podman-systemd](https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html).
+NixOS, system-manager and Home Manager modules for [Quadlet / podman-systemd](https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html).
 Inspired by the excellent work of [SEIAROTg](https://github.com/SEIAROTg/quadlet-nix), but rewritten from scratch.
 You can get started with the following minimal configuration:
 
@@ -141,9 +141,17 @@ A container running such an image gets `AutoUpdate=disabled`, since no registry 
 An image shared by several units belongs in `images`, so that it is loaded once.
 The container options `imageFile` and `imageStream` are deprecated in favor of `imagePackage`.
 
+## system-manager
+
+`systemManagerModules.default` installs rootful units on other Linux distributions through [system-manager](https://github.com/numtide/system-manager), which has no user managers.
+Unlike on NixOS, no module configures Podman in `/etc/containers`.
+The host can provide it, for example through its `containers-common` package, or you import `"${nixosModulesPath}/virtualisation/containers.nix"` and set `environment.etc.<name>.replaceExisting` for every file the host already has.
+The units are generated for `virtualisation.quadlet.podman`, which defaults to `pkgs.podman`.
+Since system-manager installs neither aliases nor `Upholds=` dependencies, units with `aliases` or `upheldBy` are rejected.
+
 ## Bundles for hosts without Nix
 
-`virtualisation.quadlet.bundle.package` renders the rootful units of a NixOS system into files for a host without Nix, which needs podman 5 and systemd.
+`virtualisation.quadlet.bundle.package` renders the rootful units of a NixOS or system-manager configuration into files for a host without Nix, which needs podman 5 and systemd.
 `legacyPackages.<system>.mkBundle` builds one from a minimal system of your modules:
 
 ```nix

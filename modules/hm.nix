@@ -7,7 +7,7 @@
 }:
 let
   cfg = config.virtualisation.quadlet;
-  podman = config.services.podman.package;
+  inherit (cfg) podman;
   lib' = import ../lib.nix lib;
   units = lib'.mkMaintenanceUnits cfg podman "default.target";
 
@@ -41,28 +41,30 @@ in
 {
   imports = [ (lib.modules.importApply ./common.nix { owner = "user"; }) ];
 
-  config = lib.mkIf (cfg.enable && cfg.allObjects != [ ]) {
-    services.podman = {
-      enable = true;
-      package = lib.mkDefault (osConfig.virtualisation.podman.package or pkgs.podman);
-      # Opt-in like ours, which would otherwise run beside it.
-      autoUpdate.enable = lib.mkDefault false;
-    };
-
-    virtualisation.quadlet.podman = podman;
-    virtualisation.quadlet.generatedUnits = lib.singleton unitPackage;
-
-    xdg.configFile =
-      lib.listToAttrs (lib.concatMap mkObjectConfigEntries cfg.allObjects)
-      // lib.optionalAttrs cfg.quadletctl.enable {
-        "quadletctl/units.tsv".text = cfg.quadletctl.units;
+  config = lib.mkMerge [
+    { virtualisation.quadlet.podman = lib.mkDefault config.services.podman.package; }
+    (lib.mkIf (cfg.enable && cfg.allObjects != [ ]) {
+      services.podman = {
+        enable = true;
+        package = lib.mkDefault (osConfig.virtualisation.podman.package or pkgs.podman);
+        # Opt-in like ours, which would otherwise run beside it.
+        autoUpdate.enable = lib.mkDefault false;
       };
 
-    home.packages = lib.mkIf cfg.quadletctl.enable [ cfg.quadletctl.package ];
+      virtualisation.quadlet.generatedUnits = lib.singleton unitPackage;
 
-    systemd.user = {
-      inherit (units) services;
-      timers = lib.mapAttrs (_: timer: timer // { Install.WantedBy = [ "timers.target" ]; }) units.timers;
-    };
-  };
+      xdg.configFile =
+        lib.listToAttrs (lib.concatMap mkObjectConfigEntries cfg.allObjects)
+        // lib.optionalAttrs cfg.quadletctl.enable {
+          "quadletctl/units.tsv".text = cfg.quadletctl.units;
+        };
+
+      home.packages = lib.mkIf cfg.quadletctl.enable [ cfg.quadletctl.package ];
+
+      systemd.user = {
+        inherit (units) services;
+        timers = lib.mapAttrs (_: timer: timer // { Install.WantedBy = [ "timers.target" ]; }) units.timers;
+      };
+    })
+  ];
 }

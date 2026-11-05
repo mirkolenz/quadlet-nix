@@ -62,6 +62,11 @@
           module = ../modules/nixos.nix;
         })
         (mkSection {
+          prefix = "system-manager";
+          title = "system-manager";
+          module = ../modules/system-manager.nix;
+        })
+        (mkSection {
           prefix = "home-manager";
           title = "Home Manager";
           module = ../modules/hm.nix;

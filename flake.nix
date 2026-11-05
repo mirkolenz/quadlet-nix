@@ -1,5 +1,5 @@
 {
-  description = "NixOS module for Quadlet / podman-systemd";
+  description = "NixOS, system-manager and Home Manager modules for Quadlet / podman-systemd";
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     flake-parts = {

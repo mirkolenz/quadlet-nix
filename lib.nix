@@ -175,6 +175,20 @@ lib: rec {
       }
     );
 
+  # The assertion that no object of `objects` defines one of the list options
+  # `options`, which `manager` cannot install.
+  mkUnsupportedAssertion =
+    manager: options: objects:
+    let
+      unsupported = lib.filter (obj: lib.any (option: obj.${option} != [ ]) options) objects;
+    in
+    {
+      assertion = unsupported == [ ];
+      message = "virtualisation.quadlet: ${manager} cannot install ${
+        lib.concatMapStringsSep " or " (option: "`${option}`") options
+      }, unlike for ${lib.concatMapStringsSep ", " (obj: obj.ref) unsupported}.";
+    };
+
   # Build time guard. The podman generator logs and skips invalid units, so
   # assert every expected service file was emitted before installing the package.
   mkQuadletUnitPackage =

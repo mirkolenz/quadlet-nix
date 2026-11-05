@@ -94,6 +94,24 @@ in
           ) (evalQuadlet inputs.nixpkgs quadlet).assertions
         );
 
+      # A system-manager configuration, whose toplevel fails on assertions.
+      evalSystemManager =
+        quadlet:
+        inputs.system-manager.lib.makeSystemConfig {
+          modules = lib.singleton {
+            imports = [ self.systemManagerModules.quadlet ];
+            nixpkgs.hostPlatform = system;
+            virtualisation.quadlet = {
+              enable = true;
+            }
+            // quadlet;
+          };
+        };
+      systemManager = evalSystemManager {
+        autoUpdate.enable = true;
+        containers.web.containerConfig.Image = "localhost/web:latest";
+      };
+
       # A rootful and a rootless container to compare the two systemd scopes.
       uidScope = evalQuadlet inputs.nixpkgs {
         containers.rootful.containerConfig.Image = "localhost/rootful:latest";
@@ -379,6 +397,38 @@ in
               }
             ];
           }
+        );
+        # system-manager installs the generated unit with its drop-in, starts it
+        # with its own target and rejects what it cannot install, and its units
+        # can be bundled like those of NixOS.
+        system-manager = pkgs.runCommand "quadlet-system-manager" { } ''
+          set -euo pipefail
+          cd ${systemManager.config.environment.etc."systemd/system".source}
+          grep -q '^ExecStart=.*/podman run ' web.service
+          test -f web.service.d/overrides.conf
+          test -e system-manager.target.wants/web.service
+          test -e system-manager.target.wants/quadlet-update.timer
+          test -f ${systemManager.config.virtualisation.quadlet.bundle.package}/etc/containers/systemd/web.container
+          grep -qF '${systemManager.config.virtualisation.quadlet.quadletctl.units}' \
+            ${systemManager.config.environment.etc."xdg/quadletctl/units.tsv".source}
+          touch $out
+        '';
+        system-manager-rejects = mkBoolCheck "quadlet-system-manager-rejects" (
+          !(lib.tryEval
+            (evalSystemManager {
+              containers.web = {
+                aliases = [ "alias.service" ];
+                containerConfig.Image = "localhost/web:latest";
+              };
+            }).drvPath
+          ).success
+        );
+        # system-manager restarts a unit whose drop-in changed, so the drop-in
+        # must change with the generated unit.
+        system-manager-restarts = mkBoolCheck "quadlet-system-manager-restarts" (
+          systemManager.config.systemd.units."web.service".unit != (evalSystemManager {
+            containers.web.containerConfig.Image = "localhost/other:latest";
+          }).config.systemd.units."web.service".unit
         );
         nixos = pkgs.testers.runNixOSTest {
           name = "nixos";

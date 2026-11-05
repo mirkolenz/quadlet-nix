@@ -14,7 +14,7 @@ let
   lib' = import ../lib.nix lib;
   quadlet = config.virtualisation.quadlet;
   cfg = quadlet.bundle;
-  podman = config.virtualisation.podman.package;
+  inherit (quadlet) podman;
 
   # The unit `name` at `path` with `text` as the host sees it, whose store
   # paths still point into the store, and its relations to the targets of

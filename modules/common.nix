@@ -82,8 +82,9 @@ in
     virtualisation.quadlet = lib.listToAttrs (map mkObjectsOption kinds) // {
       enable = lib.mkEnableOption "quadlet";
       podman = lib.mkOption {
-        internal = true;
         type = types.package;
+        default = pkgs.podman;
+        defaultText = lib.literalMD "the `package` of the podman module of NixOS or Home Manager, else `pkgs.podman`";
         description = "The podman package the units are generated for";
       };
       package = lib.mkOption {
