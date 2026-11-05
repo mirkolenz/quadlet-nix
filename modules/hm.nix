@@ -36,7 +36,7 @@ let
         lib.mapAttrsToList (dir: map (target: "${target}.${dir}/${service}")) depsByDir
       );
     in
-    map mkEntry ([ service ] ++ obj.aliases ++ depPaths);
+    map mkEntry ([ service ] ++ depPaths);
 in
 {
   imports = [ (lib.modules.importApply ./common.nix { owner = "user"; }) ];
@@ -52,6 +52,10 @@ in
       };
 
       virtualisation.quadlet.generatedUnits = lib.singleton unitPackage;
+
+      # A linked file outside the unit directory is a distinct unit to systemd,
+      # and the store paths of home-manager allow no relative alias symlink.
+      assertions = [ (lib'.mkUnsupportedAssertion "home-manager" [ "aliases" ] cfg.allObjects) ];
 
       xdg.configFile =
         lib.listToAttrs (lib.concatMap mkObjectConfigEntries cfg.allObjects)

@@ -236,18 +236,13 @@ in
               };
               pods.group.uid = 1000;
               # Raw text bypasses the structured options, so the pod membership
-              # and the `[Install]` section only reach the generator as text.
+              # only reaches the generator as text.
               containers.raw = {
                 uid = 1000;
                 rawConfig = ''
                   [Container]
                   Image=localhost/raw:latest
                   Pod=group.pod
-
-                  [Install]
-                  Alias=raw-alias.service
-                  RequiredBy=default.target
-                  UpheldBy=default.target
                 '';
               };
             }).virtualisation.quadlet.generatedUnits;
@@ -268,11 +263,6 @@ in
             grep -q "^Wants=raw.service$" "$after/group-pod.service"
             [[ "$(package web.service)" = "$(package shared-network.service)" ]]
             [[ "$(package web.service)" != "$(package other.service)" ]]
-
-            # The generator emits the symlinks of an `[Install]` section next to the unit.
-            for link in raw-alias.service default.target.requires/raw.service default.target.upholds/raw.service; do
-              [[ -e "$after/$link" ]]
-            done
 
             # Changing one object must leave every other generated unit byte-identical.
             for unit in shared-network.service sibling.service group-pod.service raw.service other.service; do
@@ -296,6 +286,14 @@ in
           [Container]
           Image=localhost/test:latest
           ThisKeyDoesNotExist=true
+        '';
+        # The links of an `[Install]` section would be distinct units.
+        install-links = mkAbortCheck "quadlet-install-links" ''
+          [Container]
+          Image=localhost/test:latest
+
+          [Install]
+          Alias=alias.service
         '';
         duplicate-refs = mkAssertionCheck "quadlet-duplicate-refs" {
           containers.a.name = "dup";
@@ -347,6 +345,7 @@ in
         deprecated-options = mkBoolCheck "quadlet-deprecated-options" (
           deprecated.systemd.timers.quadlet-update.wantedBy == [ "timers.target" ]
           && lib.count (lib.hasInfix "deprecated") deprecated.warnings == 2
+          && lib.elem "default.target" deprecated.systemd.services.web.wantedBy
           && lib.hasPrefix "localhost/quadlet/web:" deprecated.virtualisation.quadlet.containers.web.finalConfig.Container.Image
         );
         bundle = pkgs.runCommand "quadlet-bundle" { } ''

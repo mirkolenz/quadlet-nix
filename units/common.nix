@@ -126,6 +126,22 @@
       # Applied beneath the sections rather than as `mkDefault` definitions of
       # them, since containers and kubes read `Type` from them for `longRunning`.
       defaults = section: values: lib.optionalAttrs config.longRunning values // section;
+
+      # The deprecated `installConfig` maps onto the options rather than
+      # `[Install]`, whose links the build rejects. systemd splits at whitespace.
+      installKeys = [
+        "Alias"
+        "WantedBy"
+        "RequiredBy"
+        "UpheldBy"
+      ];
+      installUnits =
+        key:
+        lib.pipe (config.installConfig.${key} or [ ]) [
+          lib.toList
+          (lib.concatMap (lib.split "[[:space:]]+"))
+          (lib.filter (unit: lib.isString unit && unit != ""))
+        ];
     in
     {
       ref = "${config.name}.${config.kind}";
@@ -135,7 +151,7 @@
           StartLimitBurst = 3;
           StartLimitIntervalSec = 600;
         };
-        Install = config.installConfig;
+        Install = removeAttrs config.installConfig installKeys;
         Service = defaults config.serviceConfig {
           Restart = "on-failure";
           RestartSec = 5;
@@ -148,6 +164,12 @@
           config.rawConfig
         else
           lib'.mkUnitText (lib.recursiveUpdate config.finalConfig config.extraConfig);
-      wantedBy = lib.mkIf config.autoStart [ config.autoStartTarget ];
+      aliases = installUnits "Alias";
+      wantedBy = lib.mkMerge [
+        (lib.mkIf config.autoStart [ config.autoStartTarget ])
+        (installUnits "WantedBy")
+      ];
+      requiredBy = installUnits "RequiredBy";
+      upheldBy = installUnits "UpheldBy";
     };
 }

@@ -231,6 +231,9 @@ rawConfig = ''
 '';
 ```
 
+Neither may contain an `[Install]` section, whose links the build rejects, since systemd would treat a linked alias as a distinct unit.
+`wantedBy`, `requiredBy`, `upheldBy` and `aliases` install a unit instead, and Home Manager rejects `aliases` for the same reason.
+
 ## Comparison to [SEIAROTg/quadlet-nix](https://github.com/SEIAROTg/quadlet-nix)
 
 The two implementations solve the same problem but make different trade-offs.

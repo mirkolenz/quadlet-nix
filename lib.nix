@@ -191,6 +191,8 @@ lib: rec {
 
   # Build time guard. The podman generator logs and skips invalid units, so
   # assert every expected service file was emitted before installing the package.
+  # Systemd treats the links of an `[Install]` section as distinct units,
+  # since every manager installs them as absolute store paths.
   mkQuadletUnitPackage =
     {
       pkgs,
@@ -224,5 +226,11 @@ lib: rec {
             exit 1
           fi
         done
+
+        links=$(find "${outDir}" -mindepth 1 -maxdepth 1 ! -type f -printf '%f ')
+        if [ -n "$links" ]; then
+          echo "quadlet: [Install] sections are unsupported, use wantedBy, requiredBy, upheldBy or aliases instead of $links" >&2
+          exit 1
+        fi
       '';
 }
