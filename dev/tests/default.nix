@@ -311,32 +311,31 @@ in
         uid-scope = mkBoolCheck "quadlet-uid-scope" (
           uidScope.systemd.services.rootful.wantedBy == [ "multi-user.target" ]
           && uidScope.systemd.user.services.rootless.wantedBy == [ "default.target" ]
-          && lib.hasInfix "ConditionUser=1000" uidScopeUnits.rootless.text
-          && !lib.hasInfix "ConditionUser" uidScopeUnits.rootful.text
+          && uidScopeUnits.rootless.finalConfig.Unit.ConditionUser == 1000
+          && !uidScopeUnits.rootful.finalConfig.Unit ? ConditionUser
         );
         # The image unit loads the Nix-built image under its own tag, which the
         # pull then finds. A oneshot keeps systemd's restart defaults.
         nix-image = mkBoolCheck "quadlet-nix-image" (
-          lib.all (lib.flip lib.hasInfix nixImage.images.web.text) [
-            "Image=localhost/quadlet/web:"
-            "Policy=missing"
-            "quadlet-load"
-          ]
+          lib.hasPrefix "localhost/quadlet/web:" nixImage.images.web.finalConfig.Image.Image
+          && nixImage.images.web.finalConfig.Image.Policy == "missing"
+          && lib.any (lib.hasInfix "quadlet-load") nixImage.images.web.finalConfig.Service.ExecStartPre
           && lib.hasPrefix "localhost/quadlet/web:" nixImage.images.web.podmanName
           # A container loads its image package itself, with the same script,
           # into the storage that its global arguments select.
-          && lib.all (lib.flip lib.hasInfix nixImage.containers.direct.text) [
-            "Image=localhost/quadlet/direct:"
-            "quadlet-load"
-            " --module=/etc/module.conf --root=/srv/storage"
-          ]
+          && lib.hasPrefix "localhost/quadlet/direct:" nixImage.containers.direct.finalConfig.Container.Image
+          && lib.any (
+            exec:
+            lib.hasInfix "quadlet-load" exec
+            && lib.hasSuffix " --module=/etc/module.conf --root=/srv/storage" exec
+          ) nixImage.containers.direct.finalConfig.Service.ExecStartPre
           # No registry provides a Nix-built image to auto-update from.
-          && lib.all (unit: lib.hasInfix "AutoUpdate=disabled" unit.text) [
+          && lib.all (unit: unit.finalConfig.Container.AutoUpdate == "disabled") [
             nixImage.containers.direct
             nixImage.containers.web
           ]
-          && lib.hasInfix "Restart=on-failure" nixImage.containers.web.text
-          && lib.all (unit: !lib.hasInfix "Restart=" unit.text && !unit.autoStart) [
+          && nixImage.containers.web.finalConfig.Service.Restart == "on-failure"
+          && lib.all (unit: !unit.finalConfig.Service ? Restart && !unit.autoStart) [
             nixImage.containers.job
             nixImage.kubes.job
           ]
@@ -348,7 +347,7 @@ in
         deprecated-options = mkBoolCheck "quadlet-deprecated-options" (
           deprecated.systemd.timers.quadlet-update.wantedBy == [ "timers.target" ]
           && lib.count (lib.hasInfix "deprecated") deprecated.warnings == 2
-          && lib.hasInfix "Image=localhost/quadlet/web:" deprecated.virtualisation.quadlet.containers.web.text
+          && lib.hasPrefix "localhost/quadlet/web:" deprecated.virtualisation.quadlet.containers.web.finalConfig.Container.Image
         );
         bundle = pkgs.runCommand "quadlet-bundle" { } ''
           set -euo pipefail
