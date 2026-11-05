@@ -102,16 +102,14 @@ let
     }
   ) cfg.tmpfiles;
 
-  # Every file the bundle installs below `/etc`, by its path there, with its
-  # store paths moved below `assetDirectory`.
+  # The text of `file` on the host, with its store paths moved below
+  # `assetDirectory`.
+  hostText = file: lib.replaceStrings [ "${storeDir}/" ] [ "${cfg.assetDirectory}/" ] file.text;
+
+  # Every file the bundle installs below `/etc`, by its path there.
   etcFiles =
     lib.genAttrs' (unitFiles ++ dropins) (
-      file:
-      lib.nameValuePair file.path (
-        pkgs.writeText (lib.baseNameOf file.path) (
-          lib.replaceStrings [ "${storeDir}/" ] [ "${cfg.assetDirectory}/" ] file.text
-        )
-      )
+      file: lib.nameValuePair file.path (pkgs.writeText (lib.baseNameOf file.path) (hostText file))
     )
     // lib.genAttrs' tmpfiles (tmpfile: lib.nameValuePair tmpfile.path tmpfile.source);
 
@@ -125,60 +123,124 @@ let
   closure = pkgs.writeClosure ([ references ] ++ lib.catAttrs "package" tmpfiles);
 
   assetDirectoryArg = lib.escapeShellArg cfg.assetDirectory;
-
-  # The units and files of the installed bundle, by which the next one finds
-  # those it drops.
-  manifests = lib.mapAttrs (name: lines: lib.toFile name (lib.concatLines lines)) {
-    units = lib.catAttrs "name" unitFiles;
-    files = map (path: "/${path}") (lib.attrNames etcFiles);
-  };
-  assetPath = name: lib.escapeShellArg "${cfg.assetDirectory}/${name}";
-  # Stops the installed units and removes the installed files that the
-  # manifests `keptUnits` and `keptFiles` lack. A unit that never loaded,
-  # such as one the generator rejected, does not abort.
-  retire = keptUnits: keptFiles: ''
-    grep -svxFf ${keptUnits} ${assetPath "units"} | xargs -r systemctl stop || true
-    grep -svxFf ${keptFiles} ${assetPath "files"} | xargs -r rm -f
+  # The assets by their path on the host, which the bundle copies from the
+  # store path of the same name.
+  assetManifest = pkgs.runCommand "assets" { } ''
+    while read -r asset; do
+      echo ${assetDirectoryArg}/"''${asset##*/}"
+    done < ${assets} > $out
   '';
+
+  # The records of the bundle beside its assets, one line per entry. The
+  # manifests list the objects it installs, by which `retire` finds those
+  # that the next installation drops, and `applied` lists the units by the
+  # hash of their file, by which the installation finds those to restart.
+  records =
+    lib.mapAttrs (name: lines: lib.toFile name (lib.concatLines lines)) {
+      units = lib.catAttrs "name" unitFiles;
+      files = map (path: "/${path}") (lib.attrNames etcFiles);
+      dirs = lib.unique (map (dropin: "/${dirOf dropin.path}") dropins);
+      applied = map (unit: "${unit.name} ${lib.hashString "sha256" (hostText unit)}") unitFiles;
+    }
+    // {
+      assets = assetManifest;
+    };
 
   # A POSIX shell script for the host, linted at build time.
   script =
     name: text:
     pkgs.writeTextFile {
       inherit name;
-      text = "#!/bin/sh\nset -eu\n" + text;
+      text = ''
+        #!/bin/sh
+        set -eu
+        dir=${assetDirectoryArg}
+
+        # Lists the lines of `$2` absent from `$1`, treating missing files as empty.
+        lacking() {
+          [ -e "$1" ] || set -- /dev/null "$2"
+          grep -svxFf "$1" "$2"
+        }
+
+        # Retires the installed units, files and drop-in directories that the
+        # manifests in `$1` lack. A unit that never loaded or a drop-in
+        # directory that is shared or gone does not abort.
+        retire() {
+          lacking "$1/units" "$dir/units" | xargs -r -d '\n' systemctl stop || true
+          lacking "$1/units" "$dir/units" | xargs -r -d '\n' systemctl reset-failed || true
+          lacking "$1/files" "$dir/files" | xargs -r -d '\n' rm -f
+          lacking "$1/dirs" "$dir/dirs" | xargs -r -d '\n' rmdir --ignore-fail-on-non-empty 2>/dev/null || true
+        }
+
+      ''
+      + text;
       executable = true;
       checkPhase = "${lib.getExe pkgs.shellcheck} $target";
     };
 
-  # Restarts every running unit whose file the installation changes, an image
-  # unit with every container requiring it. The units of the previous bundle
-  # that this one drops stop before their files and assets go.
+  # Restarts every running unit whose file changed since it was last
+  # applied, an image unit with every container requiring it. The units of
+  # the previous bundle that this one drops stop before their files and
+  # assets go.
   installScript = script "install.sh" ''
-    # Installs this bundle, starts its units and restarts those it changed,
-    # collected as the positional parameters.
     cd "$(dirname "$0")"
-    set --
-    ${lib.concatMapStrings (bundled: ''
-      cmp -s ${lib.escapeShellArg bundled.path} ${lib.escapeShellArg "/${bundled.path}"} || set -- "$@" ${lib.escapeShellArg bundled.name}
-    '') unitFiles}
-    ${retire ".${assetPath "units"}" ".${assetPath "files"}"}
-    cp -r etc/. /etc/
-    # Assets are named by their content, so only new ones are copied, and
-    # those that no unit references any more are removed.
-    mkdir -p ${assetDirectoryArg}
-    for asset in .${assetDirectoryArg}/*; do
-      if [ ! -e "''${asset#.}" ]; then
-        cp -r "$asset" ${assetDirectoryArg}/
+
+    # Replaces the record `$1` in `$dir` with mode `$2` atomically.
+    publish() {
+      install -m"$2" ".$dir/$1" "$dir/$1.partial"
+      mv "$dir/$1.partial" "$dir/$1"
+    }
+
+    # Refuses to take over what another installation owns, so the
+    # uninstallation cannot remove it.
+    if [ -n "$(ls -A "$dir" 2>/dev/null)" ] && [ ! -e "$dir/files" ]; then
+      echo "$dir belongs to another installation" >&2
+      exit 1
+    fi
+
+    conflicts=$(lacking "$dir/files" ".$dir/files" | while IFS= read -r file; do
+      if [ -e "$file" ] || [ -L "$file" ]; then
+        echo "$file"
       fi
+    done)
+
+    if [ -n "$conflicts" ]; then
+      printf 'these files belong to another installation:\n%s\n' "$conflicts" >&2
+      exit 1
+    fi
+
+    retire ".$dir"
+    lacking ".$dir/assets" "$dir/assets" | xargs -r -d '\n' rm -rf
+
+    mkdir -p "$dir"
+    # Claims `$dir` for the ownership check, so an interrupted first
+    # installation can be repeated.
+    touch "$dir/files"
+    publish uninstall.sh 755
+
+    # Recorded before creating the objects, so the uninstallation and the
+    # next installation find them even if this one is interrupted.
+    for manifest in assets dirs files units; do
+      publish "$manifest" 644
     done
-    # Unlike the assets, these change without changing their name.
-    cp .${assetPath "units"} .${assetPath "files"} .${assetPath "uninstall.sh"} ${assetDirectoryArg}/
-    for asset in ${assetDirectoryArg}/*; do
-      if [ ! -e ".$asset" ]; then
-        rm -rf "$asset"
+
+    # Exactly the recorded files, with the modes of the host instead of
+    # those of the store.
+    while IFS= read -r file; do
+      install -Dm644 ".$file" "$file"
+    done < ".$dir/files"
+
+    # Assets are named by their content, so only new ones are copied, each
+    # completely before it takes its name.
+    while IFS= read -r asset; do
+      if [ ! -e "$asset" ]; then
+        rm -rf "$asset.partial"
+        cp -r ".$asset" "$asset.partial"
+        chmod -R u+w "$asset.partial"
+        mv "$asset.partial" "$asset"
       fi
-    done
+    done < ".$dir/assets"
+
     systemctl daemon-reload
     ${lib.optionalString (tmpfiles != [ ])
       "systemd-tmpfiles --create ${lib.escapeShellArgs (map (tmpfile: "/${tmpfile.path}") tmpfiles)}"
@@ -187,17 +249,17 @@ let
       "systemctl start --no-block ${lib.escapeShellArgs (lib.unique (lib.catAttrs "name" dependencies))}"
     }
 
-    if [ $# -gt 0 ]; then
-      systemctl try-restart --no-block "$@"
-    fi
+    # Recorded only once restarted, so a repeated installation restarts the
+    # units that an interrupted one missed.
+    lacking "$dir/applied" ".$dir/applied" | cut -d ' ' -f 1 | xargs -r -d '\n' systemctl try-restart --no-block
+    publish applied 644
   '';
 
   # Installed beside the assets, so it outlives the bundle it came with.
+  # Since `/dev/null` holds no manifests, it retires every recorded object.
   uninstallScript = script "uninstall.sh" ''
-    # Stops and removes the installed bundle, but keeps the directories its
-    # tmpfiles rules created.
-    ${retire "/dev/null" "/dev/null"}
-    rm -rf ${assetDirectoryArg}
+    retire /dev/null
+    rm -rf "$dir"
     systemctl daemon-reload
   '';
 
@@ -234,21 +296,19 @@ let
       "virtualisation.quadlet.bundle:\n${lib.concatMapStringsSep "\n" (error: "- ${error}") errors}"
       (
         pkgs.runCommand "${cfg.name}-bundle" { } ''
-          # Without any files, `install.sh` still finds an empty `etc`.
-          mkdir -p $out/etc
           install -Dm755 ${installScript} $out/install.sh
-          install -Dm755 ${uninstallScript} $out${assetPath "uninstall.sh"}
+          install -Dm755 ${uninstallScript} $out${assetDirectoryArg}/uninstall.sh
           ${lib.concatMapAttrsStringSep "\n" (
             path: source: "install -Dm644 ${source} $out/${lib.escapeShellArg path}"
           ) etcFiles}
           ${lib.concatMapAttrsStringSep "\n" (
-            name: source: "install -Dm644 ${source} $out${assetPath name}"
-          ) manifests}
+            name: file: "install -Dm644 ${file} $out${assetDirectoryArg}/${name}"
+          ) records}
           # Dereferenced, since symlinks such as those of `linkFarm` point
           # into the store.
           while read -r asset; do
-            cp -rL "$asset" $out${assetDirectoryArg}/
-          done < ${assets}
+            cp -rL ${storeDir}/"''${asset##*/}" "$out$asset"
+          done < ${assetManifest}
 
           # Every file must be self-contained, once the copies resolved the
           # symlinks of the assets, so none may name a store path that the
@@ -299,7 +359,7 @@ in
       };
       default = "/usr/local/lib/${cfg.name}";
       defaultText = lib.literalExpression ''"/usr/local/lib/''${config.virtualisation.quadlet.bundle.name}"'';
-      description = "The directory of the store paths that the units of the bundle reference";
+      description = "The directory of the store paths that the units of the bundle reference, which the bundle owns and its uninstallation removes";
     };
     hostTools = mkOption {
       type = with types; attrsOf str;
@@ -349,6 +409,10 @@ in
         Its `install.sh` copies them into place, starts them, restarts those it
         changed and retires those the previous bundle had but this one lacks,
         and the `uninstall.sh` it installs into `assetDirectory` removes them.
+        It refuses to replace files or an `assetDirectory` that it did not
+        install.
+        Empty target drop-in directories are removed, even if they predate
+        installation, while non-empty directories are preserved.
       '';
     };
   };

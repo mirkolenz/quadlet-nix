@@ -171,7 +171,11 @@ packages.x86_64-linux.web-bundle = quadlet-nix.lib.mkBundle {
 };
 ```
 
-Its `install.sh` installs and starts the units, restarts the changed ones and retires those that a previous bundle of the same `name` had, and the `uninstall.sh` it leaves in `bundle.assetDirectory` removes them again.
+Its `install.sh` installs and starts the units, restarts the changed ones and retires those that the previous bundle in the same `bundle.assetDirectory` had, and the `uninstall.sh` it leaves in `bundle.assetDirectory` removes them again.
+Installation requires GNU coreutils and GNU `xargs`.
+It refuses to replace files or a `bundle.assetDirectory` that it did not install, so the uninstallation removes only the units and files that the installations own.
+Empty target drop-in directories are removed, even if they predate installation, while non-empty directories are preserved.
+It keeps the state of the units, such as the directories of tmpfiles rules and the volumes, networks and images of podman.
 Besides the Quadlet files, a bundle holds the NixOS services named by `bundle.services` with their timers, the NixOS sockets named by `bundle.sockets` and the `systemd.tmpfiles.settings` named by `bundle.tmpfiles`.
 The store paths they reference are copied below `bundle.assetDirectory`, so these must be self-contained, such as scripts, configs, static binaries and image archives.
 Rootless units, `aliases`, the `environment` of services and Nix-built images loaded through `imagePackage` or `package` are not supported.
