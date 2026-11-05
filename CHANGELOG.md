@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.9.0](https://github.com/mirkolenz/quadlet-nix/compare/v1.8.1...v1.9.0) (2026-11-05)
+
+### ⚠ BREAKING CHANGES
+
+* **modules:** an `[Install]` section in `extraConfig` or `rawConfig` now fails the build, since systemd treats the links that the podman generator emits for it as distinct units instead of aliases. Use `wantedBy`, `requiredBy`, `upheldBy` and `aliases` instead. The deprecated `installConfig` keeps working and now maps onto these options. The Home Manager module now rejects `aliases` for the same reason.
+* **flake:** `legacyPackages.<system>.mkBundle` and `mkBundleSystem` are now `lib.mkBundle` and `lib.mkBundleSystem`, which take your `pkgs` beside `modules`. The flake no longer has a `nixpkgs` input, so drop `inputs.nixpkgs.follows` for quadlet-nix.
+
+### Features
+
+* **flake:** drop nixpkgs input and expose bundle builders in lib ([4f78d87](https://github.com/mirkolenz/quadlet-nix/commit/4f78d873766c9566c5bd6c5405da81dc6220dc8d))
+* **modules:** add system-manager module ([13c15b5](https://github.com/mirkolenz/quadlet-nix/commit/13c15b58cb1a8747862caf59713b966c8955a318))
+
+### Bug Fixes
+
+* **modules:** reject install links and home-manager aliases ([e298e66](https://github.com/mirkolenz/quadlet-nix/commit/e298e6690a7c772f1e068f1c74b8623c18401d6a))
+
 ## [1.8.1](https://github.com/mirkolenz/quadlet-nix/compare/v1.8.0...v1.8.1) (2026-11-04)
 
 ### Bug Fixes
