@@ -83,7 +83,7 @@ let
   dropins = lib.mapAttrsToList (target: deps: {
     path = "etc/systemd/system/${target}.d/${cfg.name}.conf";
     text = lib'.mkUnitText {
-      Unit = lib.mapAttrs (_: map (dep: dep.name)) (lib.groupBy (dep: dep.key) deps);
+      Unit = lib.mapAttrs (_: lib.catAttrs "name") (lib.groupBy (dep: dep.key) deps);
     };
   }) (lib.groupBy (dep: dep.target) dependencies);
 
@@ -122,14 +122,14 @@ let
     lib.concatMapStrings (file: file.text) (unitFiles ++ dropins)
   );
   assets = pkgs.writeDirectReferencesToFile references;
-  closure = pkgs.writeClosure ([ references ] ++ map (tmpfile: tmpfile.package) tmpfiles);
+  closure = pkgs.writeClosure ([ references ] ++ lib.catAttrs "package" tmpfiles);
 
   assetDirectoryArg = lib.escapeShellArg cfg.assetDirectory;
 
   # The units and files of the installed bundle, by which the next one finds
   # those it drops.
   manifests = lib.mapAttrs (name: lines: lib.toFile name (lib.concatLines lines)) {
-    units = map (unit: unit.name) unitFiles;
+    units = lib.catAttrs "name" unitFiles;
     files = map (path: "/${path}") (lib.attrNames etcFiles);
   };
   assetPath = name: lib.escapeShellArg "${cfg.assetDirectory}/${name}";
@@ -184,7 +184,7 @@ let
       "systemd-tmpfiles --create ${lib.escapeShellArgs (map (tmpfile: "/${tmpfile.path}") tmpfiles)}"
     }
     ${lib.optionalString (dependencies != [ ])
-      "systemctl start --no-block ${lib.escapeShellArgs (lib.unique (map (dep: dep.name) dependencies))}"
+      "systemctl start --no-block ${lib.escapeShellArgs (lib.unique (lib.catAttrs "name" dependencies))}"
     }
 
     if [ $# -gt 0 ]; then
@@ -201,10 +201,10 @@ let
     systemctl daemon-reload
   '';
 
-  failed = assertions: map (a: a.message) (lib.filter (a: !a.assertion) assertions);
+  failed = assertions: lib.catAttrs "message" (lib.filter (a: !a.assertion) assertions);
   listed =
     message: names: lib.optional (names != [ ]) "${message}: ${lib.concatStringsSep ", " names}.";
-  rejected = message: objects: listed message (map (obj: obj.ref) objects);
+  rejected = message: objects: listed message (lib.catAttrs "ref" objects);
   errors =
     failed config.assertions
     ++ failed cfg.assertions
