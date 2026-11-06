@@ -15,6 +15,18 @@ let
       imports = [ quadletModule ];
       environment.systemPackages = with pkgs; [ curl ];
       virtualisation.podman.enable = true;
+      # The owner of the rootless containers.
+      users.users.quadlet = {
+        isSystemUser = true;
+        uid = 990;
+        linger = true;
+        home = "/var/lib/quadlet";
+        createHome = true;
+        shell = pkgs.shadow;
+        autoSubUidGidRange = true;
+        group = "quadlet";
+      };
+      users.groups.quadlet.gid = 990;
       virtualisation = {
         graphics = false;
         cores = 4;
@@ -209,10 +221,13 @@ in
       bundledEmpty = mkBundle {
         modules = [ { virtualisation.quadlet.bundle.name = "web"; } ];
       };
-      # Whether the bundle of `quadlet` fails evaluation.
+      # Whether the derivation `drv` fails evaluation.
+      failsEval = drv: !(lib.tryEval drv.drvPath).success;
       rejectsBundle =
         quadlet:
-        !(lib.tryEval (mkBundle { modules = [ { virtualisation.quadlet = quadlet; } ]; }).drvPath).success;
+        failsEval (mkBundle {
+          modules = [ { virtualisation.quadlet = quadlet; } ];
+        });
 
       mkUnits =
         nixpkgs: publishPort:
@@ -519,14 +534,12 @@ in
           touch $out
         '';
         system-manager-rejects = mkBoolCheck "quadlet-system-manager-rejects" (
-          !(lib.tryEval
-            (evalSystemManager {
-              containers.web = {
-                aliases = [ "alias.service" ];
-                containerConfig.Image = "localhost/web:latest";
-              };
-            }).drvPath
-          ).success
+          failsEval (evalSystemManager {
+            containers.web = {
+              aliases = [ "alias.service" ];
+              containerConfig.Image = "localhost/web:latest";
+            };
+          })
         );
         # system-manager restarts a unit whose drop-in changed, so the drop-in
         # must change with the generated unit.

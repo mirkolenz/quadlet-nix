@@ -14,19 +14,6 @@
           RemainAfterExit = true;
         };
       };
-      users.users.quadlet = {
-        isSystemUser = true;
-        uid = 990;
-        linger = true;
-        home = "/var/lib/quadlet";
-        createHome = true;
-        shell = pkgs.shadow;
-        autoSubUidGidRange = true;
-        group = "quadlet";
-      };
-      users.groups.quadlet = {
-        gid = 990;
-      };
       home-manager.users.quadlet =
         { pkgs, config, ... }:
         {
@@ -69,34 +56,41 @@
     ''
       import json
 
+      def as_user(command):
+          return f"sudo -H -u ${user.name} XDG_RUNTIME_DIR=/run/user/${toString user.uid} {command}"
+
+      def expect_containers(count):
+          running = len(json.loads(machine.succeed("sudo -u ${user.name} -- podman ps --format json")))
+          assert running == count, f"Expected {count} containers, got: {running}"
+
+      def serves(port):
+          assert 'nginx' in machine.succeed(f"curl http://127.0.0.1:{port}").lower()
+
       machine.wait_for_unit("multi-user.target")
       machine.wait_for_unit("podman-user-wait-network-online.service", "${user.name}")
 
       machine.wait_for_unit("${containers.nginx.serviceName}.service", "${user.name}")
-      assert 'nginx' in machine.succeed("curl http://127.0.0.1:8080").lower()
-      containers = json.loads(machine.succeed("sudo -u ${user.name} -- podman ps --format json"))
-      assert len(containers) == 2, f"Expected 2 user containers, got: {len(containers)}"
+      serves(8080)
+      expect_containers(2)
 
       machine.stop_job("${containers.nginx.serviceName}.service", "${user.name}")
       machine.fail("curl http://127.0.0.1:8080")
-      containers = json.loads(machine.succeed("sudo -u ${user.name} -- podman ps --format json"))
-      assert len(containers) == 1, f"Expected 1 user container, got: {len(containers)}"
+      expect_containers(1)
 
       machine.start_job("${containers.nginx.serviceName}.service", "${user.name}")
-      assert 'nginx' in machine.succeed("curl http://127.0.0.1:8080").lower()
-      containers = json.loads(machine.succeed("sudo -u ${user.name} -- podman ps --format json"))
-      assert len(containers) == 2, f"Expected 2 user containers, got: {len(containers)}"
+      serves(8080)
+      expect_containers(2)
 
       machine.wait_for_unit("${containers.nginx-image-stream.serviceName}.service", "${user.name}")
-      assert 'nginx' in machine.succeed("curl http://127.0.0.1:8081").lower()
+      serves(8081)
 
-      machine.succeed("sudo -H -u ${user.name} XDG_RUNTIME_DIR=/run/user/${toString user.uid} ${home.virtualisation.quadlet.quadletctl.package}/bin/quadletctl systemctl is-active ${containers.nginx.serviceName} --quiet")
+      machine.succeed(as_user("${home.virtualisation.quadlet.quadletctl.package}/bin/quadletctl systemctl is-active ${containers.nginx.serviceName} --quiet"))
 
       # The auto-update timer runs its service at the configured schedule.
       timer = machine.get_unit_property("quadlet-update.timer", "TimersCalendar", "${user.name}")
       assert "Mon *-*-* 00:00:00" in timer, f"unexpected schedule: {timer}"
       timeout = machine.get_unit_property("quadlet-update.service", "TimeoutStartUSec", "${user.name}")
       assert timeout == "15min", f"unexpected timeout: {timeout}"
-      machine.succeed("sudo -H -u ${user.name} XDG_RUNTIME_DIR=/run/user/${toString user.uid} systemctl --user start quadlet-prune.service")
+      machine.succeed(as_user("systemctl --user start quadlet-prune.service"))
     '';
 }
