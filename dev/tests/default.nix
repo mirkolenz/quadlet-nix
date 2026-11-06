@@ -395,98 +395,101 @@ in
           test -x install.sh -a -x usr/local/lib/web/uninstall.sh
           touch $out
         '';
-        # Installs `bundled` on a fake host whose systemd only logs its calls,
+        # Installs `bundled` on an offline host whose systemd only logs its calls,
         # replaces it with its successor in an installation interrupted before
         # the restarts and its repetition, and uninstalls it, which must restore
-        # the host. Installations that would take over files of the host fail
-        # without changing it.
-        bundle-lifecycle =
-          pkgs.runCommand "quadlet-bundle-lifecycle" { nativeBuildInputs = [ pkgs.bubblewrap ]; }
-            ''
-              set -euo pipefail
-              mkdir -p bin host/etc/systemd/system host/etc/containers/systemd host/etc/tmpfiles.d host/usr/local/lib
-              cat > bin/systemctl <<'EOF'
-              #!/bin/sh
-              echo "''${0##*/} $*" >> "$STATE/calls"
-              if [ "$1" = daemon-reload ] && rm "$STATE/interrupt" 2>/dev/null; then
-                exit 1
-              fi
-              EOF
-              cp bin/systemctl bin/systemd-tmpfiles
-              cat > bin/install <<'EOF'
-              #!/bin/sh
-              for destination do :; done
+        # the host.
+        bundle-lifecycle = pkgs.runCommand "quadlet-bundle-lifecycle" { } ''
+          set -euo pipefail
+          export STATE=$PWD PATH=$PWD/bin:$PATH
+          mkdir bin
+          # Fails the daemon reload once after `touch "$STATE/interrupt"`.
+          cat > bin/systemctl <<'EOF'
+          #!/bin/sh
+          [ "$SYSTEMD_OFFLINE" = 1 ] || exit 1
+          echo "''${0##*/} $*" >> "$STATE/calls"
+          if [ "$1" = daemon-reload ] && rm "$STATE/interrupt" 2>/dev/null; then
+            exit 1
+          fi
+          EOF
+          cp bin/systemctl bin/systemd-tmpfiles
+          # Fails the copy to `$FAIL` after writing part of it.
+          cat > bin/install <<'EOF'
+          #!/bin/sh
+          for destination do :; done
 
-              if [ "$destination" = "''${FAIL-}" ]; then
-                printf partial > "$destination"
-                exit 1
-              fi
+          if [ "$destination" = "''${FAIL-}" ]; then
+            printf partial > "$destination"
+            exit 1
+          fi
 
-              exec ${pkgs.coreutils}/bin/install "$@"
-              EOF
-              chmod +x bin/*
-              export STATE="$PWD" PATH="$PWD/bin:$PATH"
-              # Mount namespaces, since the build sandbox forbids ptrace.
-              run() {
-                bwrap --bind host/etc /etc --bind host/usr /usr --ro-bind /nix/store /nix/store \
-                  --dev /dev --proc /proc --symlink ${pkgs.runtimeShell} /bin/sh \
-                  --bind "$PWD" "$PWD" --chdir "$PWD" "$@"
-              }
-              snapshot() { find host -printf '%p %y %m\n' | sort; }
-              mkdir -m710 host/etc/systemd/system/multi-user.target.d
-              mkdir -m750 host/etc/systemd/system/timers.target.d
-              touch host/etc/systemd/system/multi-user.target.d/foreign.conf
-              touch host/etc/systemd/system/timers.target.d/foreign.conf
-              pristine=$(snapshot)
+          exec ${pkgs.coreutils}/bin/install "$@"
+          EOF
+          chmod +x bin/*
 
-              mkdir host/usr/local/lib/web
-              touch host/usr/local/lib/web/foreign
-              run ${bundled}/install.sh && exit 1
-              rm -r host/usr/local/lib/web
-              touch host/etc/containers/systemd/web.container
-              run ${bundled}/install.sh && exit 1
-              rm host/etc/containers/systemd/web.container
-              [[ "$(snapshot)" = "$pristine" ]]
+          mkdir -p host/etc/systemd/system host/etc/containers/systemd host/etc/tmpfiles.d host/usr/local/lib
+          cd host
+          mkdir -m710 etc/systemd/system/multi-user.target.d
+          mkdir -m750 etc/systemd/system/timers.target.d
+          touch etc/systemd/system/{multi-user,timers}.target.d/foreign.conf
 
-              # Failed metadata copies must permit retrying a fresh installation
-              # and uninstalling an interrupted upgrade.
-              for metadata in uninstall.sh units files dirs assets applied; do
-                FAIL="/usr/local/lib/web/$metadata.partial" run ${bundled}/install.sh && exit 1
-                test -f host/usr/local/lib/web/files
-                run ${bundled}/install.sh
-                run /usr/local/lib/web/uninstall.sh
-                [[ "$(snapshot)" = "$pristine" ]]
+          install_bundle() { "$1/install.sh" .; }
+          uninstall() { usr/local/lib/web/uninstall.sh .; }
+          fails() { if "$@"; then exit 1; fi; }
+          snapshot() { find . -printf '%p %y %m\n' | sort; }
+          pristine=$(snapshot)
+          restored() { [[ $(snapshot) = "$pristine" ]]; }
 
-                run ${bundled}/install.sh
-                FAIL="/usr/local/lib/web/$metadata.partial" run ${bundledReduced}/install.sh && exit 1
-                run /usr/local/lib/web/uninstall.sh
-                [[ "$(snapshot)" = "$pristine" ]]
-              done
+          # Installations that would take over files of the host fail without
+          # changing it.
+          mkdir usr/local/lib/web
+          touch usr/local/lib/web/foreign
+          fails install_bundle ${bundled}
+          rm -r usr/local/lib/web
+          touch etc/containers/systemd/web.container
+          fails install_bundle ${bundled}
+          rm etc/containers/systemd/web.container
+          restored
 
-              mkdir host/etc/systemd/system/sockets.target.d
-              run ${bundled}/install.sh
-              grep -qx 'systemctl start --no-block web.service web-reload.timer web.socket' calls
-              touch interrupt
-              run ${bundledReduced}/install.sh && exit 1
-              grep -qx 'systemctl stop web-image.service web-reload.service web-reload.timer web.socket' calls
-              run ${bundledReduced}/install.sh
-              [[ "$(tail -1 calls)" = 'systemctl try-restart --no-block web.service' ]]
-              test ! -e host/etc/systemd/system/sockets.target.d -a ! -e host/etc/systemd/system/web.socket
-              test -f host/etc/containers/systemd/web.container
-              [[ "$(ls host/usr/local/lib/web)" = "$(ls ${bundledReduced}/usr/local/lib/web)" ]]
+          # Failed metadata copies must permit retrying a fresh installation
+          # and uninstalling an interrupted upgrade.
+          for metadata in uninstall.sh units files dirs assets applied; do
+            FAIL=usr/local/lib/web/$metadata.partial fails install_bundle ${bundled}
+            test -f usr/local/lib/web/files
+            install_bundle ${bundled}
+            uninstall
+            restored
 
-              run /usr/local/lib/web/uninstall.sh
-              [[ "$(snapshot)" = "$pristine" ]]
+            install_bundle ${bundled}
+            FAIL=usr/local/lib/web/$metadata.partial fails install_bundle ${bundledReduced}
+            uninstall
+            restored
+          done
 
-              # An empty bundle retires everything without issuing bare unit commands.
-              run ${bundled}/install.sh
-              run ${bundledEmpty}/install.sh
-              : > calls
-              run /usr/local/lib/web/uninstall.sh
-              [[ "$(cat calls)" = 'systemctl daemon-reload' ]]
-              [[ "$(snapshot)" = "$pristine" ]]
-              touch $out
-            '';
+          mkdir etc/systemd/system/sockets.target.d
+          install_bundle ${bundled}
+          grep -qx 'systemctl start --no-block web.service web-reload.timer web.socket' "$STATE/calls"
+          grep -qx "systemd-tmpfiles --root=$PWD --create 10-web.conf" "$STATE/calls"
+          touch "$STATE/interrupt"
+          fails install_bundle ${bundledReduced}
+          grep -qx 'systemctl stop web-image.service web-reload.service web-reload.timer web.socket' "$STATE/calls"
+          install_bundle ${bundledReduced}
+          [[ $(tail -1 "$STATE/calls") = 'systemctl try-restart --no-block web.service' ]]
+          [[ ! -e etc/systemd/system/sockets.target.d && ! -e etc/systemd/system/web.socket ]]
+          test -f etc/containers/systemd/web.container
+          [[ $(ls usr/local/lib/web) = $(ls ${bundledReduced}/usr/local/lib/web) ]]
+          uninstall
+          restored
+
+          # An empty bundle retires everything without issuing bare unit commands.
+          install_bundle ${bundled}
+          install_bundle ${bundledEmpty}
+          : > "$STATE/calls"
+          uninstall
+          [[ $(cat "$STATE/calls") = 'systemctl daemon-reload' ]]
+          restored
+          touch $out
+        '';
         # The loader of a Nix-built image runs a shell from the store.
         bundle-store-reference =
           pkgs.runCommand "quadlet-bundle-store-reference"

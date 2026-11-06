@@ -172,6 +172,7 @@ packages.x86_64-linux.web-bundle = quadlet-nix.lib.mkBundle {
 ```
 
 Its `install.sh` installs and starts the units, restarts the changed ones and retires those that the previous bundle in the same `bundle.assetDirectory` had, and the `uninstall.sh` it leaves in `bundle.assetDirectory` removes them again.
+Both take an optional root, such as `install.sh /mnt` for a mounted image, whose systemd then starts the units at boot.
 Installation requires GNU coreutils and GNU `xargs`.
 It refuses to replace files or a `bundle.assetDirectory` that it did not install, so the uninstallation removes only the units and files that the installations own.
 Empty target drop-in directories are removed, even if they predate installation, while non-empty directories are preserved.

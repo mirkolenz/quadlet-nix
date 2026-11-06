@@ -122,7 +122,8 @@ let
   assets = pkgs.writeDirectReferencesToFile references;
   closure = pkgs.writeClosure ([ references ] ++ lib.catAttrs "package" tmpfiles);
 
-  assetDirectoryArg = lib.escapeShellArg cfg.assetDirectory;
+  # Relative to the root of the host, like every path the bundle records.
+  assetDirectoryArg = lib.escapeShellArg (lib.removePrefix "/" cfg.assetDirectory);
   # The assets by their path on the host, which the bundle copies from the
   # store path of the same name.
   assetManifest = pkgs.runCommand "assets" { } ''
@@ -138,8 +139,8 @@ let
   records =
     lib.mapAttrs (name: lines: lib.toFile name (lib.concatLines lines)) {
       units = lib.catAttrs "name" unitFiles;
-      files = map (path: "/${path}") (lib.attrNames etcFiles);
-      dirs = lib.unique (map (dropin: "/${dirOf dropin.path}") dropins);
+      files = lib.attrNames etcFiles;
+      dirs = lib.unique (map (dropin: dirOf dropin.path) dropins);
       applied = map (unit: "${unit.name} ${lib.hashString "sha256" (hostText unit)}") unitFiles;
     }
     // {
@@ -155,6 +156,17 @@ let
         #!/bin/sh
         set -eu
         dir=${assetDirectoryArg}
+
+        # Enters the root `$1` of the host, `/` by default, against which the
+        # recorded paths resolve. Any other root, such as a mounted image, is
+        # offline, so its systemd starts the units only at boot.
+        enter() {
+          cd "''${1:-/}"
+
+          if [ "$PWD" != / ]; then
+            export SYSTEMD_OFFLINE=1
+          fi
+        }
 
         # Lists the lines of `$2` absent from `$1`, treating missing files as empty.
         lacking() {
@@ -183,24 +195,25 @@ let
   # the previous bundle that this one drops stop before their files and
   # assets go.
   installScript = script "install.sh" ''
-    cd "$(dirname "$0")"
+    bundle=$(cd "$(dirname "$0")" && pwd)
+    enter "$@"
 
     # Replaces the record `$1` in `$dir` with mode `$2` atomically.
     publish() {
-      install -m"$2" ".$dir/$1" "$dir/$1.partial"
+      install -m"$2" "$bundle/$dir/$1" "$dir/$1.partial"
       mv "$dir/$1.partial" "$dir/$1"
     }
 
     # Refuses to take over what another installation owns, so the
     # uninstallation cannot remove it.
     if [ -n "$(ls -A "$dir" 2>/dev/null)" ] && [ ! -e "$dir/files" ]; then
-      echo "$dir belongs to another installation" >&2
+      echo "/$dir belongs to another installation" >&2
       exit 1
     fi
 
-    conflicts=$(lacking "$dir/files" ".$dir/files" | while IFS= read -r file; do
+    conflicts=$(lacking "$dir/files" "$bundle/$dir/files" | while IFS= read -r file; do
       if [ -e "$file" ] || [ -L "$file" ]; then
-        echo "$file"
+        echo "/$file"
       fi
     done)
 
@@ -209,8 +222,8 @@ let
       exit 1
     fi
 
-    retire ".$dir"
-    lacking ".$dir/assets" "$dir/assets" | xargs -r -d '\n' rm -rf
+    retire "$bundle/$dir"
+    lacking "$bundle/$dir/assets" "$dir/assets" | xargs -r -d '\n' rm -rf
 
     mkdir -p "$dir"
     # Claims `$dir` for the ownership check, so an interrupted first
@@ -227,37 +240,41 @@ let
     # Exactly the recorded files, with the modes of the host instead of
     # those of the store.
     while IFS= read -r file; do
-      install -Dm644 ".$file" "$file"
-    done < ".$dir/files"
+      install -Dm644 "$bundle/$file" "$file"
+    done < "$bundle/$dir/files"
 
     # Assets are named by their content, so only new ones are copied, each
     # completely before it takes its name.
     while IFS= read -r asset; do
       if [ ! -e "$asset" ]; then
         rm -rf "$asset.partial"
-        cp -r ".$asset" "$asset.partial"
+        cp -r "$bundle/$asset" "$asset.partial"
         chmod -R u+w "$asset.partial"
         mv "$asset.partial" "$asset"
       fi
-    done < ".$dir/assets"
+    done < "$bundle/$dir/assets"
 
     systemctl daemon-reload
-    ${lib.optionalString (tmpfiles != [ ])
-      "systemd-tmpfiles --create ${lib.escapeShellArgs (map (tmpfile: "/${tmpfile.path}") tmpfiles)}"
-    }
+    ${lib.optionalString (tmpfiles != [ ]) ''
+      # By name, which an offline root resolves below itself.
+      systemd-tmpfiles ''${SYSTEMD_OFFLINE:+"--root=$PWD"} --create ${
+        lib.escapeShellArgs (map (tmpfile: tmpfile.package.name) tmpfiles)
+      }
+    ''}
     ${lib.optionalString (dependencies != [ ])
       "systemctl start --no-block ${lib.escapeShellArgs (lib.unique (lib.catAttrs "name" dependencies))}"
     }
 
     # Recorded only once restarted, so a repeated installation restarts the
     # units that an interrupted one missed.
-    lacking "$dir/applied" ".$dir/applied" | cut -d ' ' -f 1 | xargs -r -d '\n' systemctl try-restart --no-block
+    lacking "$dir/applied" "$bundle/$dir/applied" | cut -d ' ' -f 1 | xargs -r -d '\n' systemctl try-restart --no-block
     publish applied 644
   '';
 
   # Installed beside the assets, so it outlives the bundle it came with.
   # Since `/dev/null` holds no manifests, it retires every recorded object.
   uninstallScript = script "uninstall.sh" ''
+    enter "$@"
     retire /dev/null
     rm -rf "$dir"
     systemctl daemon-reload
@@ -297,17 +314,17 @@ let
       (
         pkgs.runCommand "${cfg.name}-bundle" { } ''
           install -Dm755 ${installScript} $out/install.sh
-          install -Dm755 ${uninstallScript} $out${assetDirectoryArg}/uninstall.sh
+          install -Dm755 ${uninstallScript} $out/${assetDirectoryArg}/uninstall.sh
           ${lib.concatMapAttrsStringSep "\n" (
             path: source: "install -Dm644 ${source} $out/${lib.escapeShellArg path}"
           ) etcFiles}
           ${lib.concatMapAttrsStringSep "\n" (
-            name: file: "install -Dm644 ${file} $out${assetDirectoryArg}/${name}"
+            name: file: "install -Dm644 ${file} $out/${assetDirectoryArg}/${name}"
           ) records}
           # Dereferenced, since symlinks such as those of `linkFarm` point
           # into the store.
           while read -r asset; do
-            cp -rL ${storeDir}/"''${asset##*/}" "$out$asset"
+            cp -rL ${storeDir}/"''${asset##*/}" "$out/$asset"
           done < ${assetManifest}
 
           # Every file must be self-contained, once the copies resolved the
@@ -409,6 +426,8 @@ in
         Its `install.sh` copies them into place, starts them, restarts those it
         changed and retires those the previous bundle had but this one lacks,
         and the `uninstall.sh` it installs into `assetDirectory` removes them.
+        Both take the root of an offline host, such as a mounted image, as
+        an optional argument.
         It refuses to replace files or an `assetDirectory` that it did not
         install.
         Empty target drop-in directories are removed, even if they predate
