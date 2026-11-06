@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.1](https://github.com/mirkolenz/quadlet-nix/compare/v1.9.0...v1.9.1) (2026-11-06)
+
+### Bug Fixes
+
+* **bundle:** derive uninstallation from installation script ([27aaa19](https://github.com/mirkolenz/quadlet-nix/commit/27aaa195bf72a7cbcd6b54f3d85fa4fa2b5b3324))
+* **bundle:** install into an optional offline root ([9f786f9](https://github.com/mirkolenz/quadlet-nix/commit/9f786f9d9afa3d87ac3b3a4ff1c21d798ba684fc))
+
 ## [1.9.0](https://github.com/mirkolenz/quadlet-nix/compare/v1.8.1...v1.9.0) (2026-11-05)
 
 ### ⚠ BREAKING CHANGES
