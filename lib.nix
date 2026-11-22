@@ -82,6 +82,15 @@ lib: rec {
   nixImageReference =
     image: "localhost/quadlet/${image.imageName}:${lib.hashString "sha256" image.outPath}";
 
+  # The keys that several elements of `list` share.
+  duplicates =
+    key: list:
+    lib.pipe list [
+      (lib.groupBy key)
+      (lib.filterAttrs (_: values: lib.length values > 1))
+      lib.attrNames
+    ];
+
   # The units `<name>-update` and `<name>-prune` of the `autoUpdate` and
   # `autoPrune` options in a manager whose units start with `target`,
   # with timers started by `timers.target`.

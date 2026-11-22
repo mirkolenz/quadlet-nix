@@ -174,12 +174,15 @@ packages.x86_64-linux.web-bundle = quadlet-nix.lib.mkBundle {
 Its `install.sh` installs and starts the units, restarts the changed ones and retires those that the previous bundle in the same `bundle.assetDirectory` had, and the `uninstall.sh` it leaves in `bundle.assetDirectory` removes them again.
 Both take an optional root, such as `install.sh /mnt` for a mounted image, whose systemd then starts the units at boot.
 Installation requires GNU coreutils and GNU `xargs`.
-It refuses to replace files or a `bundle.assetDirectory` that it did not install, so the uninstallation removes only the units and files that the installations own.
-Empty target drop-in directories are removed, even if they predate installation, while non-empty directories are preserved.
-It keeps the state of the units, such as the directories of tmpfiles rules and the volumes, networks and images of podman.
-Besides the Quadlet files, a bundle holds the NixOS services named by `bundle.services` with their timers, the NixOS sockets named by `bundle.sockets` and the `systemd.tmpfiles.settings` named by `bundle.tmpfiles`.
-The store paths they reference are copied below `bundle.assetDirectory`, so these must be self-contained, such as scripts, configs, static binaries and image archives.
-Rootless units, `aliases`, the `environment` of services and Nix-built images loaded through `imagePackage` or `package` are not supported.
+The bundle owns `bundle.assetDirectory` and its unit files, so bundles on one host need distinct names and must not define the same units.
+Uninstallation leaves empty target drop-in directories behind.
+It keeps the state of the units, such as the volumes, networks and images of podman.
+Besides the Quadlet files, a bundle holds the units of `autoUpdate` and `autoPrune`, named `<name>-update` and `<name>-prune` after `bundle.name`.
+It also holds the NixOS sockets named by `bundle.sockets` and the NixOS timers named by `bundle.timers`, which activate containers on connections or on a schedule.
+A changed socket restarts with the service it activates, which would otherwise keep listening on the old socket.
+The store paths they reference are copied below `bundle.assetDirectory`, so these must be self-contained, such as configs, static binaries and image archives.
+Rootless units, `aliases` and Nix-built images loaded through `imagePackage` or `package` are not supported.
+Writable state belongs in named volumes, since a bundle creates no host directories, and containers with `UserNS=auto` need the `containers` entry in `/etc/subuid` and `/etc/subgid` of the host, as described below.
 
 ## User namespaces
 

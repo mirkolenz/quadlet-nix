@@ -66,15 +66,8 @@ let
     );
 
   duplicateNames = lib.intersectLists (lib.attrNames cfg.containers) (lib.attrNames cfg.pods);
-  duplicates =
-    key:
-    lib.pipe cfg.allObjects [
-      (lib.groupBy key)
-      (lib.filterAttrs (_: values: lib.length values > 1))
-      lib.attrNames
-    ];
-  duplicateRefs = duplicates (obj: obj.ref);
-  duplicateServiceNames = duplicates (obj: obj.serviceName);
+  duplicateRefs = lib'.duplicates (obj: obj.ref) cfg.allObjects;
+  duplicateServiceNames = lib'.duplicates (obj: obj.serviceName) cfg.allObjects;
   concatObjects = lib.concatMap (kind: lib.attrValues cfg."${kind}s") kinds;
 in
 {
