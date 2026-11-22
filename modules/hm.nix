@@ -9,7 +9,7 @@ let
   cfg = config.virtualisation.quadlet;
   inherit (cfg) podman;
   lib' = import ../lib.nix lib;
-  units = lib'.mkMaintenanceUnits cfg podman "default.target";
+  units = lib'.mkMaintenanceUnits cfg podman "default.target" "quadlet";
 
   # A home-manager configuration always covers a single user, so all objects
   # share one generator run and references between units always resolve.
@@ -65,10 +65,7 @@ in
 
       home.packages = lib.mkIf cfg.quadletctl.enable [ cfg.quadletctl.package ];
 
-      systemd.user = {
-        inherit (units) services;
-        timers = lib.mapAttrs (_: timer: timer // { Install.WantedBy = [ "timers.target" ]; }) units.timers;
-      };
+      systemd.user = units;
     })
   ];
 }

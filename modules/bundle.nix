@@ -444,7 +444,7 @@ in
     # The units of `autoUpdate` and `autoPrune`, which NixOS only defines with
     # rootful units.
     services = lib.mkIf (lib.any (obj: obj.owner == "system") quadlet.allObjects) (
-      lib.attrNames (lib'.mkMaintenanceUnits quadlet podman "multi-user.target").services
+      lib.attrNames (lib'.mkMaintenanceUnits quadlet podman "multi-user.target" "quadlet").services
     );
   };
 }

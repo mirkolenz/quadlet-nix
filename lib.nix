@@ -82,14 +82,15 @@ lib: rec {
   nixImageReference =
     image: "localhost/quadlet/${image.imageName}:${lib.hashString "sha256" image.outPath}";
 
-  # The units of the `autoUpdate` and `autoPrune` options in a manager whose
-  # units start with `target`, without the install of the timers.
-  mkMaintenanceUnits = cfg: podman: target: {
+  # The units `<name>-update` and `<name>-prune` of the `autoUpdate` and
+  # `autoPrune` options in a manager whose units start with `target`,
+  # with timers started by `timers.target`.
+  mkMaintenanceUnits = cfg: podman: target: name: {
     services =
       # Like the `podman-auto-update` service of Podman, but with a timeout
       # instead of hanging on a pull forever.
       lib.optionalAttrs cfg.autoUpdate.enable {
-        quadlet-update = {
+        "${name}-update" = {
           Unit = {
             Description = "Update the Podman images of Quadlet units";
             Documentation = "man:podman-auto-update(1)";
@@ -107,7 +108,7 @@ lib: rec {
       // lib.optionalAttrs cfg.autoPrune.enable {
         # Runs after `target`, so that a missed run does not remove the images
         # of units that are about to start.
-        quadlet-prune = {
+        "${name}-prune" = {
           Unit = {
             Description = "Prune unused Podman images";
             After = [ target ];
@@ -120,8 +121,9 @@ lib: rec {
       };
     timers =
       lib.optionalAttrs cfg.autoUpdate.enable {
-        quadlet-update = {
+        "${name}-update" = {
           Unit.Description = "Update the Podman images of Quadlet units";
+          Install.WantedBy = [ "timers.target" ];
           Timer = {
             OnCalendar = cfg.autoUpdate.startAt;
             Persistent = true;
@@ -130,8 +132,9 @@ lib: rec {
         };
       }
       // lib.optionalAttrs cfg.autoPrune.enable {
-        quadlet-prune = {
+        "${name}-prune" = {
           Unit.Description = "Prune unused Podman images";
+          Install.WantedBy = [ "timers.target" ];
           Timer = {
             OnCalendar = cfg.autoPrune.startAt;
             Persistent = true;

@@ -17,39 +17,42 @@ let
   objectsByOwner = lib.groupBy (obj: obj.owner) cfg.allObjects;
   rootlessObjectsByOwner = removeAttrs objectsByOwner [ "system" ];
 
-  # Maps the sections of a unit, such as `Service`, onto `serviceConfig`.
-  toNixosUnit = lib.mapAttrs' (section: lib.nameValuePair "${lib.toLower section}Config");
+  # Maps the sections of a unit, such as `Service`, onto `serviceConfig`,
+  # and its `[Install]` onto `wantedBy`.
+  toNixosUnit =
+    unit:
+    lib.mapAttrs' (section: lib.nameValuePair "${lib.toLower section}Config") (
+      removeAttrs unit [ "Install" ]
+    )
+    // {
+      wantedBy = unit.Install.WantedBy or [ ];
+    };
 
   # The units of `objects` in one manager whose units start with `target`,
-  # with the `[Unit]` keys `timerUnit` on every timer.
+  # with the `[Unit]` keys `unitSection` on every maintenance unit.
   managerUnits =
-    objects: target: timerUnit:
-    let
-      units = lib'.mkMaintenanceUnits cfg cfg.podman target;
-    in
-    lib.mkIf (objects != [ ]) {
-      services =
-        lib.genAttrs' objects (
-          obj:
-          lib.nameValuePair obj.serviceName {
-            overrideStrategy = "asDropin";
-            inherit (obj)
-              aliases
-              wantedBy
-              requiredBy
-              upheldBy
-              ;
-          }
-        )
-        // lib.mapAttrs (_: toNixosUnit) units.services;
-      timers = lib.mapAttrs (
-        _: timer:
-        toNixosUnit (lib.recursiveUpdate timer { Unit = timerUnit; })
-        // {
-          wantedBy = [ "timers.target" ];
+    objects: target: unitSection:
+    lib.mkIf (objects != [ ]) (
+      lib.mkMerge [
+        {
+          services = lib.genAttrs' objects (
+            obj:
+            lib.nameValuePair obj.serviceName {
+              overrideStrategy = "asDropin";
+              inherit (obj)
+                aliases
+                wantedBy
+                requiredBy
+                upheldBy
+                ;
+            }
+          );
         }
-      ) units.timers;
-    };
+        (lib.mapAttrs (
+          _: lib.mapAttrs (_: unit: toNixosUnit (lib.recursiveUpdate unit { Unit = unitSection; }))
+        ) (lib'.mkMaintenanceUnits cfg cfg.podman target "quadlet"))
+      ]
+    );
 
   unitPackages = lib.mapAttrsToList (
     owner: objects:
