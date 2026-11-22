@@ -181,6 +181,27 @@ Besides the Quadlet files, a bundle holds the NixOS services named by `bundle.se
 The store paths they reference are copied below `bundle.assetDirectory`, so these must be self-contained, such as scripts, configs, static binaries and image archives.
 Rootless units, `aliases`, the `environment` of services and Nix-built images loaded through `imagePackage` or `package` are not supported.
 
+## User namespaces
+
+Rootful containers with `UserNS=auto` get their own range of IDs from the subordinate IDs of the `containers` user.
+The NixOS module creates this user with the upper half of the 32-bit IDs, as podman documents, unless `containersUser.enable` is disabled.
+Since the userborn version of system-manager ignores subordinate IDs, hosts managed by it must provide the `containers` entries themselves, such as `containers:2147483647:2147483648`.
+A configuration that declares `users.users.containers` itself keeps its own ranges.
+Since that range may change whenever Quadlet recreates the container, mount writable named volumes with `idmap`, which maps their files onto whatever range the container gets:
+
+```nix
+virtualisation.quadlet = {
+  volumes.data = { };
+  containers.web.containerConfig = {
+    Image = "docker.io/library/nginx:latest";
+    UserNS = "auto";
+    Volume = [ "data.volume:/data:idmap" ];
+  };
+};
+```
+
+Idmapped mounts need a filesystem that supports them below `/var/lib/containers`, such as ext4, xfs, btrfs or ZFS 2.2.
+
 ## Updates and pruning
 
 `autoUpdate.enable` adds the `quadlet-update` timer and service, scheduled at `autoUpdate.startAt` and limited to `autoUpdate.timeout`.

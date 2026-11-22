@@ -1,4 +1,4 @@
-{ ... }:
+{ lib, ... }:
 {
   nodes.machine =
     { pkgs, config, ... }:
@@ -25,10 +25,15 @@
         autoUpdate.enable = true;
         autoPrune.enable = true;
         images.nginx.package = pkgs.dockerTools.examples.nginxStream;
+        volumes.nginx-shared = { };
         containers = {
+          # Its own user namespace from the IDs of the `containers` user, whose
+          # volume is mapped onto any range it gets.
           nginx-shared.containerConfig = {
             Image = config.virtualisation.quadlet.images.nginx.ref;
             PublishPort = [ "8086:80" ];
+            UserNS = "auto";
+            Volume = [ "${config.virtualisation.quadlet.volumes.nginx-shared.ref}:/data:idmap" ];
           };
           nginx = {
             containerConfig = {
@@ -59,6 +64,7 @@
       containers = nodes.machine.virtualisation.quadlet.containers;
       images = nodes.machine.virtualisation.quadlet.images;
       user = nodes.machine.users.users.quadlet;
+      containersUser = nodes.machine.users.users.containers;
     in
     ''
       import json
@@ -129,6 +135,8 @@
 
       serves(8086)
       booted = loads()
+      huser = machine.succeed("podman top ${containers.nginx-shared.podmanName} huser").split()[1]
+      assert int(huser) >= ${toString (lib.head containersUser.subUidRanges).startUid}, f"not in the range of the containers user: {huser}"
 
       # A restarted image unit skips the load while the build is present.
       machine.succeed("systemctl restart ${images.nginx.serviceName}.service")
