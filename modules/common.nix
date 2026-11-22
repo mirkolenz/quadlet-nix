@@ -67,7 +67,11 @@ let
 
   duplicateNames = lib.intersectLists (lib.attrNames cfg.containers) (lib.attrNames cfg.pods);
   duplicateRefs = lib'.duplicates (obj: obj.ref) cfg.allObjects;
-  duplicateServiceNames = lib'.duplicates (obj: obj.serviceName) cfg.allObjects;
+  # The names of the maintenance units do not depend on their target.
+  duplicateServiceNames = lib'.duplicates lib.id (
+    lib.catAttrs "serviceName" cfg.allObjects
+    ++ lib.attrNames (lib'.mkMaintenanceUnits cfg cfg.podman null lib'.maintenanceName).services
+  );
   concatObjects = lib.concatMap (kind: lib.attrValues cfg."${kind}s") kinds;
 in
 {
@@ -167,7 +171,7 @@ in
       {
         assertion = duplicateServiceNames == [ ];
         message = ''
-          Generated quadlet service names should be unique.
+          Generated quadlet service names should be unique, also from the units of `autoUpdate` and `autoPrune`.
           The following service names are not unique: ${lib.concatStringsSep " " duplicateServiceNames}
         '';
       }

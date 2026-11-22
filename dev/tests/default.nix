@@ -330,6 +330,10 @@ in
             containerConfig.ServiceName = "distinct";
           };
         } "not unique: dup.container";
+        maintenance-names = mkAssertionCheck "quadlet-maintenance-names" {
+          autoUpdate.enable = true;
+          containers.quadlet-update.containerConfig.Image = "localhost/web:latest";
+        } "not unique: quadlet-update";
         generated-units = mkGeneratedUnitsCheck "quadlet-generated-units" inputs.nixpkgs;
         generated-units-stable = mkGeneratedUnitsCheck "quadlet-generated-units-stable" inputs.nixpkgs-stable;
         # `uid` selects the systemd manager: null gives a system unit started by

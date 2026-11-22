@@ -9,7 +9,7 @@ let
   cfg = config.virtualisation.quadlet;
   inherit (cfg) podman;
   lib' = import ../lib.nix lib;
-  units = lib'.mkMaintenanceUnits cfg podman "default.target" "quadlet";
+  units = lib'.mkMaintenanceUnits cfg podman "default.target" lib'.maintenanceName;
 
   # A home-manager configuration always covers a single user, so all objects
   # share one generator run and references between units always resolve.

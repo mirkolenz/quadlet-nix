@@ -50,7 +50,7 @@ let
         }
         (lib.mapAttrs (
           _: lib.mapAttrs (_: unit: toNixosUnit (lib.recursiveUpdate unit { Unit = unitSection; }))
-        ) (lib'.mkMaintenanceUnits cfg cfg.podman target "quadlet"))
+        ) (lib'.mkMaintenanceUnits cfg cfg.podman target lib'.maintenanceName))
       ]
     );
 

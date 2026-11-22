@@ -91,6 +91,9 @@ lib: rec {
       lib.attrNames
     ];
 
+  # The name of the maintenance units in the systemd managers of the modules.
+  maintenanceName = "quadlet";
+
   # The units `<name>-update` and `<name>-prune` of the `autoUpdate` and
   # `autoPrune` options in a manager whose units start with `target`,
   # with timers started by `timers.target`.
