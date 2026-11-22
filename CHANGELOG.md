@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.10.0](https://github.com/mirkolenz/quadlet-nix/compare/v1.9.1...v1.10.0) (2026-11-22)
+
+### ⚠ BREAKING CHANGES
+
+* **bundle:** `bundle.services`, `bundle.tmpfiles` and `bundle.assertions` are removed, run jobs as Quadlet containers activated by `bundle.timers` and keep state in named volumes instead.
+* **modules:** the NixOS module creates the `containers` user with subordinate IDs for `UserNS=auto` unless `containersUser.enable` is disabled.
+
+### Features
+
+* **bundle:** add timers and drop services, tmpfiles and ownership checks ([5530d43](https://github.com/mirkolenz/quadlet-nix/commit/5530d43fe13b903e11b170bb84c714b4ce264370))
+* **modules:** add containers user for rootful user namespaces ([8504990](https://github.com/mirkolenz/quadlet-nix/commit/850499002c14656381b05cbf2701a776df4a3232))
+
+### Bug Fixes
+
+* **modules:** reject services named like maintenance units ([d5eeff5](https://github.com/mirkolenz/quadlet-nix/commit/d5eeff5a2cf814ca209d0105ef6dbfb0eec983e6))
+
 ## [1.9.1](https://github.com/mirkolenz/quadlet-nix/compare/v1.9.0...v1.9.1) (2026-11-06)
 
 ### Bug Fixes
